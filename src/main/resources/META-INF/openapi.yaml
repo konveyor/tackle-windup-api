@@ -1,0 +1,67 @@
+---
+openapi: 3.0.3
+info:
+  title: windup-api API
+  version: 0.0.1-SNAPSHOT
+paths:
+  /windup/analysis:
+    post:
+      tags:
+      - Windup Resource
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                application:
+                  format: binary
+                  type: string
+                applicationFileName:
+                  type: string
+                sources:
+                  default: ""
+                  type: string
+                targets:
+                  type: string
+                packages:
+                  default: ""
+                  type: string
+                sourceMode:
+                  default: "false"
+                  type: boolean
+      responses:
+        "200":
+          description: OK
+  /windup/analysis/{analysisId}/issues:
+    get:
+      tags:
+      - Windup Resource
+      parameters:
+      - name: analysisId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /windup/analysisSse:
+    get:
+      tags:
+      - Windup Broadcaster Resource
+      responses:
+        "204":
+          description: No Content
+  /windup/issue:
+    get:
+      tags:
+      - Windup Resource
+      parameters:
+      - name: analysisId
+        in: query
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
