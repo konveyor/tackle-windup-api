@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: shared-analysis
     app.kubernetes.io/component: storage
     app.kubernetes.io/instance: shared-analysis
-    app.kubernetes.io/part-of: prototype
+    app.kubernetes.io/part-of: windup-api
 spec:
   accessModes:
     - ReadWriteMany
@@ -23,7 +23,7 @@ metadata:
     app.kubernetes.io/name: central-graph
     app.kubernetes.io/component: storage
     app.kubernetes.io/instance: central-graph
-    app.kubernetes.io/part-of: prototype
+    app.kubernetes.io/part-of: windup-api
 spec:
   accessModes:
     - ReadWriteOnce
@@ -41,7 +41,7 @@ metadata:
     app.kubernetes.io/name: artemis
     app.kubernetes.io/component: jms-broker
     app.kubernetes.io/instance: artemis
-    app.kubernetes.io/part-of: prototype
+    app.kubernetes.io/part-of: windup-api
 spec:
   ports:
     - name: tcp
@@ -59,7 +59,7 @@ metadata:
     app.kubernetes.io/name: artemis-console
     app.kubernetes.io/component: jms-broker
     app.kubernetes.io/instance: artemis-console
-    app.kubernetes.io/part-of: prototype
+    app.kubernetes.io/part-of: windup-api
 spec:
   ports:
     - name: http
@@ -75,16 +75,16 @@ metadata:
   name: api
   labels:
     app.kubernetes.io/name: api
-    app.kubernetes.io/component: prototype
+    app.kubernetes.io/component: windup-api
     app.kubernetes.io/instance: api
-    app.kubernetes.io/part-of: prototype
+    app.kubernetes.io/part-of: windup-api
 spec:
   ports:
     - name: http
       port: 8080
       targetPort: 8080
   selector:
-    app.kubernetes.io/name: prototype
+    app.kubernetes.io/name: windup-api
   type: LoadBalancer
   sessionAffinity: None
 ---
@@ -96,7 +96,7 @@ metadata:
     app.kubernetes.io/name: artemis
     app.kubernetes.io/component: jms-broker
     app.kubernetes.io/instance: artemis
-    app.kubernetes.io/part-of: prototype
+    app.kubernetes.io/part-of: windup-api
 spec:
   replicas: 1
   selector:
@@ -167,7 +167,7 @@ metadata:
     app.kubernetes.io/name: windup-executor
     app.kubernetes.io/component: windup
     app.kubernetes.io/instance: windup-executor
-    app.kubernetes.io/part-of: prototype
+    app.kubernetes.io/part-of: windup-api
 spec:
   replicas: 1
   selector:
@@ -234,23 +234,23 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: prototype
+  name: windup-api
   labels:
-    app.kubernetes.io/name: prototype
+    app.kubernetes.io/name: windup-api
     app.kubernetes.io/component: API
-    app.kubernetes.io/instance: prototype
-    app.kubernetes.io/part-of: prototype
+    app.kubernetes.io/instance: windup-api
+    app.kubernetes.io/part-of: windup-api
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app.kubernetes.io/name: prototype
+      app.kubernetes.io/name: windup-api
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: prototype
+        app.kubernetes.io/name: windup-api
     spec:
       volumes:
         - name: shared-volume
@@ -264,7 +264,7 @@ spec:
           image: busybox:latest
           command: ['sh', '-c', "until wget -O /dev/null -T 1 http://${ARTEMIS_CONSOLE_SERVICE_HOST}:${ARTEMIS_CONSOLE_SERVICE_PORT}/; do echo waiting for artemis; sleep 2; done"]
       containers:
-        - name: prototype
+        - name: windup-api
 #          image: localhost/mrizzi/windup-api:0.0.1-SNAPSHOT
           image: quay.io/windupeng/windup-api:0.0.1-SNAPSHOT
           ports:
@@ -310,12 +310,12 @@ spec:
 kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
-  name: prototype
+  name: windup-api
   labels:
-    app.kubernetes.io/component: prototype
+    app.kubernetes.io/component: windup-api
     app.kubernetes.io/instance: api
     app.kubernetes.io/name: api
-    app.kubernetes.io/part-of: prototype
+    app.kubernetes.io/part-of: windup-api
 spec:
   to:
     kind: Service

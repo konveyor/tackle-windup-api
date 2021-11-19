@@ -33,33 +33,33 @@ A Swagger UI is also embedded in the Windup API and accessible from the provided
 
 ## Run on Minikube
 Install a Minikube instance following instructions from.  
-Once Minikube is up and running, create the `prototype` namespace executing
+Once Minikube is up and running, create the `windup` namespace executing
 ```shell
-kubectl create namespace prototype
+kubectl create namespace windup
 ```
 and then deploy the Windup API using
 ```shell
-kubectl apply -n prototype -f https://raw.githubusercontent.com/windup/windup-api/main/minikube.yaml
+kubectl apply -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/minikube.yaml
 ```
-Now all the images for running the container is going to be pulled so it might take some time.  
-You can know when the Windup API is available, waiting for the `prototype` deployment to meet the `Available` condition execution:
+Now all the images for running the containers are going to be pulled, so it might take some time (:coffee: ?).  
+You can know when the Windup API is available, waiting for the `windup-api` deployment to meet the `Available` condition execution:
 ```shell
-kubectl wait -n prototype --for condition=Available deployment prototype
+kubectl wait -n windup --for condition=Available deployment windup-api
 ```
-As soon as the `prototype` deployment will be available, the following message will be displayed:
+As soon as the `windup-api` deployment will be available, the following message will be displayed:
 ```shell
-deployment.apps/prototype condition met
+deployment.apps/windup-api condition met
 ```
 Now you can start testing the Windup API leveraging the provided sample page executing
 ```shell
-minikube service -n prototype api
+minikube service -n windup api
 ```
 that will open your default browser directly with the provided sample page.  
 
 If you want to remove all the resources create, you can run:
 ```shell
-kubectl delete -n prototype -f https://raw.githubusercontent.com/windup/windup-api/main/minikube.yaml
-kubectl delete namespace prototype
+kubectl delete -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/minikube.yaml
+kubectl delete namespace windup
 ```
 
 ## Try with the sample page
@@ -88,9 +88,9 @@ An early (i.e. proof of concept) integration between [Tackle](https://github.com
 A kubernetes manifest for deploying the integrated versions of Tackle and Windup API is provided.  
 It can be deployed executing
 ```shell
-kubectl apply -n prototype -f https://raw.githubusercontent.com/windup/windup-api/main/windup-api-with-tackle.yaml
+kubectl apply -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/windup-api-with-tackle.yaml
 ```
-Once deployed, the Tackle UI can be opened clicking on the link available in the `Endpoints` column in the `Ingress` page (see next screenshot).  
+Once deployed, the Tackle UI can be opened browsing the `Ingress` page in the Minikube dashboard and clicking on the link available in the `Endpoints` column (see next screenshot).  
 
 ![Tackle Minikube Ingress](docs/images/tackle-minikube-ingress.png?raw=true "Tackle Minikube Ingress")  
 
@@ -105,5 +105,5 @@ In the Tackle UI, once a new application has been created, the `Analyze` command
 Windup API default configuration allows the upload of applications up to 100 MB.  
 This size can be changed applying a different value to the `QUARKUS_HTTP_LIMITS_MAX_BODY_SIZE` environment variable executing:
 ```shell
-kubectl set -n prototype env deployment prototype QUARKUS_HTTP_LIMITS_MAX_BODY_SIZE="<new_value>"
+kubectl set -n windup env deployment windup-api QUARKUS_HTTP_LIMITS_MAX_BODY_SIZE="<new_value>"
 ```
