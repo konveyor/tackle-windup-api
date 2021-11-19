@@ -1,0 +1,216 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8">
+    <title>Windup APIs</title>
+<!--    <link rel="stylesheet" type="text/css"
+          href="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/css/patternfly.min.css">
+    <link rel="stylesheet" type="text/css"
+          href="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/css/patternfly-additions.min.css">-->
+    <style>
+        h1, h2, h3, h4, h5, h6 {
+            margin-bottom: 0.5rem;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+        }
+
+        h2 {
+            font-size: 2rem
+        }
+
+        h3 {
+            font-size: 1.75rem
+
+        }
+
+        h4 {
+            font-size: 1.5rem
+        }
+
+        h5 {
+            font-size: 1.25rem
+        }
+
+        h6 {
+            font-size: 1rem
+        }
+
+        .lead {
+            font-weight: 300;
+            font-size: 2rem;
+        }
+
+        .banner {
+            font-size: 2.7rem;
+            margin: 0;
+            padding: 2rem 1rem;
+            background-color: #0d1c2c;
+            color: white;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+
+        code {
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 87.5%;
+            color: #e83e8c;
+            word-break: break-word;
+        }
+
+        .left-column {
+            padding: .75rem;
+            max-width: 75%;
+            min-width: 55%;
+        }
+
+        .right-column {
+            padding: .75rem;
+            max-width: 25%;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+        }
+
+        li {
+            margin: 0.75rem;
+        }
+
+        .right-section {
+            margin-left: 1rem;
+            padding-left: 0.5rem;
+        }
+
+        .right-section h3 {
+            padding-top: 0;
+            font-weight: 200;
+        }
+
+        .right-section ul {
+            border-left: 0.3rem solid #71aeef;
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .provided-code {
+            border-left: 0.3rem solid #71aeef;
+            padding-left: 10px;
+        }
+
+        .provided-code h3 {
+            font-weight: 200;
+        }
+    </style>
+</head>
+<body>
+    <div class="banner lead">
+        Windup APIs Prototype
+    </div>
+    <div class="container">
+        <div class="left-column">
+            <p class="lead"> Courtesy page with sample forms to test the APIs endpoints.</p>
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">Sample Configuration</h2>
+                    <div class="provided-code">
+                        <p>Application analyzed is <a href="samples/jee-example-app-1.0.0.ear">jee-example-app-1.0.0.ear</a> with the targets Red Hat JBoss EAP, Quarkus, Cloud-readiness and Red Hat Runtimes.</p>
+                        <button class="btn btn-info" id="request-sample-analysis">Request Analysis with sample configuration</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">Custom Configuration</h2>
+                    <div class="provided-code">
+                        <form id="request-analysis-form">
+                            <label for="application">Choose the application to be analyzed *</label>
+                            <input type="file" id="application" name="application">
+                            <input id="applicationFileName" type="hidden" name="applicationFileName" value=""/>
+                            <br/>
+                            <label for="sources">Provide the analysis sources (comma-separated)</label>
+                            <input type="text" id="sources" name="sources" size="50">
+                            <br/>
+                            <label for="targets">Provide the analysis targets (comma-separated) *</label>
+                            <input type="text" id="targets" name="targets" value="eap7,cloud-readiness,quarkus,rhr" size="50">
+                            <br/>
+                            <label for="packages">Provide the analysis packages (comma-separated)</label>
+                            <input type="text" id="packages" name="packages" size="50">
+<!--
+                            <br/>
+                            <label for="sourceMode">Check if application's source code is provided</label>
+                            <input type="checkbox" id="sourceMode" name="sourceMode">
+-->
+                        </form>
+                        <button class="btn btn-info" id="request-analysis">Request Analysis with custom configuration</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">Executions</h2>
+                    <div class="analysis provided-code"></div>
+                </div>
+            </div>
+        </div>
+        <div class="right-column">
+            <div class="right-section">
+                <h3>Would you like to check the OpenAPI doc for these APIs?</h3>
+                <ul>
+                    <li>Open <a href="/q/swagger-ui" target="_blank">OpenAPI with Swagger UI</a> in a new tab.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $("#request-sample-analysis").click((event) => {
+        fetch("/windup/trigger", {method: "GET"})
+            .then(res => res.headers.get("Analysis-Id"))
+            .then(analysisId => {
+                var row = $(`<h3 class='col-md-12' id='${analysisId}'>Analysis #<i>${analysisId}</i>: <strong>Pending</strong></h3>`);
+                $(".analysis").append(row);
+            });
+    });
+    $("#request-analysis").click((event) => {
+        event.preventDefault();
+        fetch("/windup/analysis", {
+            method: "POST",
+            body: new FormData(document.getElementById("request-analysis-form"))
+            })
+            .then(res => {
+                if (!res.ok) {
+                    alert(`Failure in triggering the analysis (Status ${res.status})`);
+                    throw Error(`Failure in triggering the analysis (Status ${res.status})`);
+                }
+                return res.headers.get("Analysis-Id");
+            })
+            .then(analysisId => {
+                var row = $(`<h3 class='col-md-12' id='${analysisId}'>Analysis #<i>${analysisId}</i>: <strong>Pending</strong></h3>`);
+                $(".analysis").append(row);
+            });
+    });
+    var source = new EventSource("/windup/analysisSse/");
+    source.onmessage = (event) => {
+        var json = JSON.parse(event.data);
+        console.log("event received " + json.state);
+/*        $(`#${json.id}`).html(function(index, html) {
+            return html.replace("Pending", `\$\xA0${json.state}`);
+        });*/
+        $(`#${json.id} strong`).text(`${json.state}\xA0[${json.workCompleted}\\${json.totalWork + 1}]`);
+        if (json.state === 'MERGED') {
+            var issues = $(`<a href='/windup/analysis/${json.id}/issues' target='_blank'>Issues</a>`)
+            $(`#${json.id}`).append(issues);
+        }
+    };
+    document.getElementById('application').onchange = function () {
+        document.getElementById('applicationFileName').value = this.files.item(0).name;
+    };
+</script>
+</html>
+
