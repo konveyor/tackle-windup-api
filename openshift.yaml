@@ -185,7 +185,7 @@ spec:
       containers:
         - name: windup-executor
 #          image: localhost/mrizzi/windup-web-openshift-messaging-executor:5.2.1-SNAPSHOT
-          image: quay.io/windupeng/windup-web-openshift-messaging-executor:prototype
+          image: quay.io/mrizzi/windup-web-openshift-messaging-executor:prototype
           resources:
             requests:
               cpu: 2
@@ -230,6 +230,7 @@ spec:
             timeoutSeconds: 10
             successThreshold: 1
             failureThreshold: 6
+          imagePullPolicy: Always
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -306,6 +307,7 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 10
+          imagePullPolicy: Always
 ---
 kind: Route
 apiVersion: route.openshift.io/v1
