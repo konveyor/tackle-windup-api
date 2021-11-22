@@ -2395,6 +2395,8 @@ metadata:
     app.kubernetes.io/component: application
     app.kubernetes.io/instance: tackle
     app.kubernetes.io/part-of: tackle
+annotations:
+  nginx.ingress.kubernetes.io/proxy-body-size: 100M
 spec:
   rules:
     - http:
