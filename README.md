@@ -57,6 +57,7 @@ This size can be changed applying a different value to the `QUARKUS_HTTP_LIMITS_
 ```shell
 kubectl set -n windup env deployment windup-api QUARKUS_HTTP_LIMITS_MAX_BODY_SIZE="<new_value>"
 ```
+where `<new_value>` follows the [Quarkus MemorySize format](https://quarkus.io/guides/http-reference#memory-size-note-anchor).  
 
 # Deployment Guide
 
