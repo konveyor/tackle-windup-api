@@ -195,7 +195,7 @@ On your OCP instance, create a project `windup` executing
 oc new-project windup
 ```
 
-then upload our template to your project executing
+then upload API's template to your project executing
 ```shell
 oc create -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/openshift/windup-api-with-tackle.yaml
 ```
