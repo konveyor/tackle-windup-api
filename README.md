@@ -44,7 +44,7 @@ kubectl apply -n windup -f https://raw.githubusercontent.com/windup/windup-api/m
 Now all the images for running the containers are going to be pulled, so it might take some time (:coffee: ?).  
 You can know when the Windup API is available, waiting for the `windup-api` deployment to meet the `Available` condition execution:
 ```shell
-kubectl wait -n windup --for condition=Available deployment windup-api
+kubectl wait -n windup --for condition=Available deployment windup-api --timeout=-1s
 ```
 As soon as the `windup-api` deployment will be available, the following message will be displayed:
 ```shell
@@ -86,15 +86,44 @@ This is useful for quickly execute some tests of the endpoints.
 
 An early (i.e. proof of concept) integration between [Tackle](https://github.com/konveyor/tackle), the tools that support the modernization and migration of applications to Kubernetes from [Konveyor](https://www.konveyor.io/) community, and Windup API is available.  
 A kubernetes manifest for deploying the integrated versions of Tackle and Windup API is provided.  
-It can be deployed executing
+Before deploying it, enable the `ingress` Minikube addon with  
+```shell
+minikube addons enable ingress
+```
+Then deploy creating, if not already done, the `windup` namespace running  
+```shell
+kubectl create namespace windup
+```
+and then executing  
 ```shell
 kubectl apply -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/windup-api-with-tackle.yaml
 ```
-Once deployed, the Tackle UI can be opened browsing the `Ingress` page in the Minikube dashboard and clicking on the link available in the `Endpoints` column (see next screenshot).  
-
-![Tackle Minikube Ingress](docs/images/tackle-minikube-ingress.png?raw=true "Tackle Minikube Ingress")  
-
-In the Tackle UI, once a new application has been created, the `Analyze` command -for triggering an analysis with Windup API- is available in the right menu in the application row (see next screenshot).  
+You can check if the deployments have been successfully done executing and waiting for the next command to finish  
+```shell
+kubectl -n windup wait deployment --all --for condition=Available --timeout=-1s
+```
+The expected outcome would be like (the order of the entries can be different):  
+```shell
+deployment.apps/application-inventory-postgres condition met
+deployment.apps/artemis condition met
+deployment.apps/controls-postgres condition met
+deployment.apps/keycloak condition met
+deployment.apps/keycloak-postgres condition met
+deployment.apps/pathfinder-postgres condition met
+deployment.apps/tackle-application-inventory condition met
+deployment.apps/tackle-controls condition met
+deployment.apps/tackle-pathfinder condition met
+deployment.apps/tackle-ui condition met
+deployment.apps/windup-api condition met
+deployment.apps/windup-executor condition met
+```
+Once deployed, the Tackle UI can be opened retrieving the Minikube IP executing  
+```shell
+minikube ip
+```
+and open a browser at the provided IP value (e.g. `192.168.49.2`).  
+The credentials to login into the Tackle UI are username `tackle` and password `password`.  
+Then, once a new application has been created, the `Analyze` command -for triggering an analysis with Windup API- is available in the right menu in the application row (see next screenshot).  
 
 ![Tackle analyze application](docs/images/tackle-select-analyze.png?raw=true "Tackle analyze application")  
 
