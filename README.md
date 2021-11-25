@@ -227,7 +227,8 @@ deployment.apps/windup-api condition met
 deployment.apps/windup-executor condition met
 ```
 
-Once deployed, the Tackle UI can be opened through the Route provided by OCP. To see the routes available execute
+Once deployed, the Tackle UI can be opened through the Route provided by OCP.  
+The route's URL is the value provided in the `HOST/PORT` column in the output of the command:
 
 ```shell
 oc get routes -n windup
