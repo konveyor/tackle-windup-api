@@ -19,8 +19,6 @@
   * [API with sample page](#api-with-sample-page-2)
   * [API with Tackle](#api-with-tackle-2)
 
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
-
 # Introduction
 
 ## Summary
