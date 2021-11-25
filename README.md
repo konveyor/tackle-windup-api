@@ -140,15 +140,102 @@ Now you can move to the [Usage Guide - API with Tackle](#api-with-tackle-2) to g
 
 ## OCP
 
-TBD  
+You need to have an instance of Openshift Container Platform (OCP).
 
 ### API with sample page
 
-TBD  
+On your OCP instance, create a project `windup` executing
+```shell
+oc new-project windup
+```
+
+then upload our template to your project executing
+```shell
+oc create -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/openshift/windup-api.yaml
+```
+
+finally, instantiate the template executing:
+```shell
+oc process windup-api -n windup | oc create -f -
+```
+
+Now all the images for running the containers are going to be pulled, so it might take some time.
+
+You can know when the Windup API is available, waiting for the `windup-api` deployment to meet the `Available` condition execution:
+```shell
+oc wait -n windup --for condition=Available deployment windup-api --timeout=-1s
+```
+
+As soon as the `windup-api` deployment will be available, the following message will be displayed:
+```shell
+deployment.apps/windup-api condition met
+```
+
+Now you can start testing the Windup API opening, in your browser, the Route url provided by OCP. To see the routes available in your project execute:
+```shell
+oc get routes -n windup
+```
+
+Now you can move to the [Usage Guide - API with Swagger](#api-with-swagger) and [Usage Guide - API with sample page](#api-with-sample-page-2) to get details on how to use them.  
+
+If later you want to remove all the resources created, you can run:  
+```shell
+oc delete -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/openshift/windup-api.yaml
+oc delete project windup
+```
 
 ### API with Tackle
 
-TBD  
+An early (i.e. proof of concept) integration between [Tackle](https://github.com/konveyor/tackle), the tools that support the modernization and migration of applications to Kubernetes from [Konveyor](https://www.konveyor.io/) community, and Windup API is available.
+
+A kubernetes manifest for deploying the integrated versions of Tackle and Windup API is provided.  
+
+On your OCP instance, create a project `windup` executing
+```shell
+oc new-project windup
+```
+
+then upload our template to your project executing
+```shell
+oc create -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/openshift/windup-api-with-tackle.yaml
+```
+
+finally, instantiate the template executing:
+```shell
+oc process windup-api-with-tackle -n windup | oc create -f -
+```
+
+You can check if the deployments have been successfully done executing and waiting for the next command to finish  
+```shell
+oc -n windup wait deployment --all --for condition=Available --timeout=-1s
+```
+
+The expected outcome would be like (the order of the entries can be different):  
+```shell
+deployment.apps/application-inventory-postgres condition met
+deployment.apps/artemis condition met
+deployment.apps/controls-postgres condition met
+deployment.apps/keycloak condition met
+deployment.apps/keycloak-postgres condition met
+deployment.apps/pathfinder-postgres condition met
+deployment.apps/tackle-application-inventory condition met
+deployment.apps/tackle-controls condition met
+deployment.apps/tackle-pathfinder condition met
+deployment.apps/tackle-ui condition met
+deployment.apps/windup-api condition met
+deployment.apps/windup-executor condition met
+```
+
+Once deployed, the Tackle UI can be opened through the Route provided by OCP. To see the routes available execute
+
+```shell
+oc get routes -n windup
+```
+
+Open a browser pointing to the Route url provided by the previous command.
+
+Now you can move to the [Usage Guide - API with Tackle](#api-with-tackle-2) to get details on how to use the deployed applications.  
+
 
 # Usage Guide
 
