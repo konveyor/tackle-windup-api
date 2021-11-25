@@ -3,17 +3,18 @@ kind: Template
 apiVersion: template.openshift.io/v1
 metadata:
   annotations:
-    description: Windup API Template
-    openshift.io/display-name: Windup API
+    description: Windup API with Tackle Template
+    openshift.io/display-name: Windup API with Tackle
     iconClass: fas fa-boxes
-  name: tackle
+  name: windup-api-with-tackle
 labels:
-  app.kubernetes.io/name: windup-api
+  app.kubernetes.io/name: windup-api-with-tackle
   app.kubernetes.io/component: template
-  app.kubernetes.io/instance: windup-api
-  app.kubernetes.io/part-of: windup-api
-message: Windup API has been installed.
+  app.kubernetes.io/instance: windup-api-with-tackle
+  app.kubernetes.io/part-of: windup-api-with-tackle
+message: Windup API with Tackle has been installed.
 objects:
+  # Windup API resources
   - kind: PersistentVolumeClaim
     apiVersion: v1
     metadata:
@@ -30,7 +31,6 @@ objects:
         requests:
           storage: 1Gi
       volumeMode: Filesystem
-
   - kind: PersistentVolumeClaim
     apiVersion: v1
     metadata:
@@ -66,7 +66,6 @@ objects:
           targetPort: 61616
       selector:
         app.kubernetes.io/name: artemis
-
   - apiVersion: v1
     kind: Service
     metadata:
@@ -84,7 +83,6 @@ objects:
       selector:
         app.kubernetes.io/name: artemis
       type: LoadBalancer
-
   - kind: Service
     apiVersion: v1
     metadata:
@@ -174,7 +172,6 @@ objects:
           maxSurge: 25%
       revisionHistoryLimit: 10
       progressDeadlineSeconds: 600
-
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -246,7 +243,6 @@ objects:
                 successThreshold: 1
                 failureThreshold: 6
               imagePullPolicy: Always
-
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -282,7 +278,7 @@ objects:
                 [
                   "sh",
                   "-c",
-                  "until wget -T 1 http://${ARTEMIS_CONSOLE_SERVICE_HOST}:${ARTEMIS_CONSOLE_SERVICE_PORT}/; do echo waiting for artemis; sleep 2; done",
+                  "until wget -O /dev/null -T 1 http://${ARTEMIS_CONSOLE_SERVICE_HOST}:${ARTEMIS_CONSOLE_SERVICE_PORT}/; do echo waiting for artemis; sleep 2; done",
                 ]
           containers:
             - name: windup-api
@@ -297,7 +293,7 @@ objects:
                 - name: QUARKUS_ARTEMIS_URL
                   value: "tcp://artemis:61616"
                 - name: QUARKUS_LOG_LEVEL
-                  #              value: "DEBUG"
+                  # value: "DEBUG"
                   value: "INFO"
                 - name: QUARKUS_HTTP_LIMITS_MAX_BODY_SIZE
                   value: "100M"
@@ -328,10 +324,7 @@ objects:
                 timeoutSeconds: 10
               imagePullPolicy: Always
 
-  #
   # Tackle resources
-  #
-
   - kind: PersistentVolumeClaim
     apiVersion: v1
     metadata:
@@ -470,6 +463,7 @@ objects:
           targetPort: 8080
       selector:
         app.kubernetes.io/name: keycloak
+    # ???  type: LoadBalancer
   - kind: Service
     apiVersion: v1
     metadata:
@@ -2802,7 +2796,7 @@ objects:
           targetPort: 8080
       selector:
         app.kubernetes.io/name: tackle-ui
-  
+
   - apiVersion: v1
     kind: Service
     metadata:
@@ -2833,9 +2827,9 @@ objects:
     metadata:
       annotations:
         prometheus.io/scheme: http
-        prometheus.io/scrape: 'true'
+        prometheus.io/scrape: "true"
         prometheus.io/path: "/q/metrics"
-        prometheus.io/port: '8080'
+        prometheus.io/port: "8080"
       labels:
         app.kubernetes.io/name: tackle-application-inventory
         app.kubernetes.io/part-of: tackle
@@ -2877,7 +2871,7 @@ objects:
         app.kubernetes.io/part-of: tackle
         app.kubernetes.io/version: 0.0.1-SNAPSHOT-native
       type: ClusterIP
-  
+
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -2929,7 +2923,7 @@ objects:
                       name: controls-postgresql
                       key: database-password
                 - name: QUARKUS_OIDC_AUTH_SERVER_URL
-                  value: 'http://keycloak:8080/auth/realms/tackle'
+                  value: "http://keycloak:8080/auth/realms/tackle"
               image: quay.io/konveyor/tackle-controls:0.0.1-SNAPSHOT-native
               imagePullPolicy: Always
               livenessProbe:
@@ -2961,9 +2955,9 @@ objects:
     kind: Deployment
     metadata:
       annotations:
-        prometheus.io/port: '8080'
+        prometheus.io/port: "8080"
         prometheus.io/scheme: http
-        prometheus.io/scrape: 'true'
+        prometheus.io/scrape: "true"
         prometheus.io/path: "/q/metrics"
       labels:
         app.kubernetes.io/component: rest
@@ -2981,9 +2975,9 @@ objects:
       template:
         metadata:
           annotations:
-            prometheus.io/port: '8080'
+            prometheus.io/port: "8080"
             prometheus.io/scheme: http
-            prometheus.io/scrape: 'true'
+            prometheus.io/scrape: "true"
             prometheus.io/path: "/q/metrics"
           labels:
             app.kubernetes.io/component: rest
@@ -3008,7 +3002,7 @@ objects:
                       name: application-inventory-postgresql
                       key: database-password
                 - name: QUARKUS_OIDC_AUTH_SERVER_URL
-                  value: 'http://keycloak:8080/auth/realms/tackle'
+                  value: "http://keycloak:8080/auth/realms/tackle"
               image: quay.io/carlosthe19916/tackle-application-inventory:prototype
               imagePullPolicy: Always
               livenessProbe:
@@ -3087,7 +3081,7 @@ objects:
                       name: pathfinder-postgresql
                       key: database-password
                 - name: QUARKUS_OIDC_AUTH_SERVER_URL
-                  value: 'http://keycloak:8080/auth/realms/tackle'
+                  value: "http://keycloak:8080/auth/realms/tackle"
               image: quay.io/konveyor/tackle-pathfinder:0.0.1-SNAPSHOT-native
               imagePullPolicy: Always
               livenessProbe:
@@ -3115,3 +3109,24 @@ objects:
                 periodSeconds: 30
                 successThreshold: 1
                 timeoutSeconds: 10
+
+  - kind: Route
+    apiVersion: route.openshift.io/v1
+    metadata:
+      name: tackle-ui
+      labels:
+        app.kubernetes.io/component: ui
+        app.kubernetes.io/instance: tackle-ui
+        app.kubernetes.io/name: tackle-ui
+        app.kubernetes.io/part-of: tackle
+    spec:
+      to:
+        kind: Service
+        name: tackle-ui
+        weight: 100
+      port:
+        targetPort: 8080-tcp
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+      wildcardPolicy: None
