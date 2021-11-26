@@ -65,9 +65,9 @@ public class AnalysisStatusConsumer implements Runnable {
                     case COMPLETED:
                         LOG.infof("COMPLETED: %s", lastUpdate);
                         String id = Long.toString(message.getLongProperty("projectId"));
-                        windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"totalWork\":0,\"workCompleted\":0}", id));
+                        windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging into central graph\",\"totalWork\":1,\"workCompleted\":0}", id));
                         graphService.updateCentralJanusGraph(windupExecution.getOutputPath(), id);
-                        windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGED\",\"totalWork\":0,\"workCompleted\":1}", id));
+                        windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGED\",\"currentTask\":\"Merged into central graph\",\"totalWork\":1,\"workCompleted\":1}", id));
                         // TODO delete the application file now
                         LOG.debug("COMPLETED updateCentralJanusGraph");
                         break;
