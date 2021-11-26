@@ -202,7 +202,7 @@
 /*        $(`#${json.id}`).html(function(index, html) {
             return html.replace("Pending", `\$\xA0${json.state}`);
         });*/
-        $(`#${json.id} strong`).text(`${json.state}\xA0[${json.workCompleted}\\${json.totalWork + 1}]`);
+        $(`#${json.id} strong`).text(`${json.state}\xA0[${json.workCompleted}\\${json.totalWork}]`);
         if (json.state === 'MERGED') {
             var issues = $(`<a href='/windup/analysis/${json.id}/issues' target='_blank'>Issues</a>`)
             $(`#${json.id}`).append(issues);
