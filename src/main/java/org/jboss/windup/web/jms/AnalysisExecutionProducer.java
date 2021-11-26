@@ -49,7 +49,7 @@ public class AnalysisExecutionProducer {
 
             analysisContext.setAdvancedOptions(Stream.of(targets.split(",")).map(targetValue -> new AdvancedOption("target", targetValue.trim())).collect(Collectors.toList()));
             if (StringUtils.isNotBlank(sources)) analysisContext.getAdvancedOptions().addAll(Stream.of(sources.split(",")).map(sourceValue -> new AdvancedOption("source", sourceValue.trim())).collect(Collectors.toList()));
-            if (StringUtils.isNotBlank(packages)) analysisContext.setIncludePackages(Stream.of(packages.split(",")).map(packageValue -> new Package(packageValue.trim())).collect(Collectors.toSet()));
+            if (StringUtils.isNotBlank(packages)) analysisContext.setIncludePackages(Stream.of(packages.split(",")).map(packageValue -> new Package(packageValue.trim(), packageValue.trim(), false)).collect(Collectors.toSet()));
             if (sourceMode != null) analysisContext.getAdvancedOptions().add(new AdvancedOption("sourceMode", sourceMode.toString()));
 
             RulesPath rulesPath = new RulesPath();
