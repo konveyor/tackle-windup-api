@@ -35,14 +35,13 @@ public class AnalysisExecutionProducer {
     @Inject
     ConnectionFactory connectionFactory;
 
-    public long triggerAnalysis(String applicationFilePath, String baseOutputPath, String sources, String targets, String packages, Boolean sourceMode) {
+    public void triggerAnalysis(long analysisId, String applicationFilePath, String baseOutputPath, String sources, String targets, String packages, Boolean sourceMode) {
         LOG.debugf("JMS Connection Factory: %s", connectionFactory.toString());
         try (JMSContext context = connectionFactory.createContext(Session.AUTO_ACKNOWLEDGE)) {
             TextMessage executionRequestMessage = context.createTextMessage();
 
-            long id = System.currentTimeMillis();
-            executionRequestMessage.setLongProperty("projectId", id);
-            executionRequestMessage.setLongProperty("executionId", id);
+            executionRequestMessage.setLongProperty("projectId", analysisId);
+            executionRequestMessage.setLongProperty("executionId", analysisId);
 
             AnalysisContext analysisContext = new AnalysisContext();
             analysisContext.setGenerateStaticReports(false);
@@ -63,17 +62,16 @@ public class AnalysisExecutionProducer {
             analysisContext.setApplications(Set.of(registeredApplication));
 
             WindupExecution windupExecution = new WindupExecution();
-            windupExecution.setId(id);
+            windupExecution.setId(analysisId);
             windupExecution.setAnalysisContext(analysisContext);
             windupExecution.setTimeQueued(new GregorianCalendar());
             windupExecution.setState(ExecutionState.QUEUED);
-            windupExecution.setOutputPath(Path.of(baseOutputPath, Long.toString(id)).toString());
+            windupExecution.setOutputPath(Path.of(baseOutputPath, Long.toString(analysisId)).toString());
 
             String json = WindupExecutionJSONUtil.serializeToString(windupExecution);
             executionRequestMessage.setText(json);
             LOG.infof("Going to send the Windup execution request %s", json);
             context.createProducer().send(context.createQueue("executorQueue"), executionRequestMessage);
-            return id;
         }
         catch (JMSException | IOException e)
         {
