@@ -3027,13 +3027,13 @@ spec:
       containers:
         - name: windup-executor
           image: quay.io/mrizzi/windup-web-openshift-messaging-executor:prototype
-          resources:
-            requests:
-              cpu: 2
-              memory: 4Gi
-            limits:
-              cpu: 2
-              memory: 4Gi
+#          resources:
+#            requests:
+#              cpu: 2
+#              memory: 4Gi
+#            limits:
+#              cpu: 2
+#              memory: 4Gi
           env:
             - name: MESSAGING_USER
               value: "quarkus"
