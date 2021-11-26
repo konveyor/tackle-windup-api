@@ -85,6 +85,9 @@ public class WindupResource {
     @Inject
     AnalysisExecutionProducer analysisExecutionProducer;
 
+    @Inject
+    WindupBroadcasterResource windupBroadcasterResource;
+
     @GET
     @Path("/issue")
     public Response issues(@QueryParam(PATH_PARAM_ANALYSIS_ID) String analysisId) {
@@ -120,6 +123,10 @@ public class WindupResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public Response runAnalysis(@MultipartForm AnalysisMultipartBody analysisRequest) {
         try {
+            // TODO: make this ID working when multi instances are deployed
+            //  (and current time allows for conflicts)
+            long analysisId = System.currentTimeMillis();
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Storing application\",\"totalWork\":2,\"workCompleted\":0}", analysisId));
             File application = Paths.get(sharedFolderPath, analysisRequest.applicationFileName).toFile();
             Files.createDirectories(java.nio.file.Path.of(application.getParentFile().getAbsolutePath()));
             Files.copy(
@@ -128,12 +135,14 @@ public class WindupResource {
                     StandardCopyOption.REPLACE_EXISTING);
             LOG.debugf("Copied input file to %s\n", application.getAbsolutePath());
             IOUtils.closeQuietly(analysisRequest.applicationFile);
-            long analysisId = analysisExecutionProducer.triggerAnalysis(application.getAbsolutePath(),
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Triggering the analysis\",\"totalWork\":2,\"workCompleted\":1}", analysisId));
+            analysisExecutionProducer.triggerAnalysis(analysisId, application.getAbsolutePath(),
                     Paths.get(sharedFolderPath).toAbsolutePath().toString(),
                     analysisRequest.sources,
                     analysisRequest.targets,
                     analysisRequest.packages,
                     analysisRequest.sourceMode);
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Analysis waiting to be executed\",\"totalWork\":2,\"workCompleted\":2}", analysisId));
             return Response
                     .created(URI.create(String.format("/windup/analysis/%d", analysisId)))
                     .header("Issues-Location", URI.create(String.format("/windup/analysis/%d/issues", analysisId)).toString())
@@ -149,9 +158,13 @@ public class WindupResource {
     @Path("/trigger")
     @Operation(summary = "This method is used to trigger the sample configuration form analysis.", hidden = true)
     public Response trigger() {
-        long analysisId = analysisExecutionProducer.triggerAnalysis(
+        // TODO see above
+        long analysisId = System.currentTimeMillis();
+        windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Triggering the analysis\",\"totalWork\":1,\"workCompleted\":0}", analysisId));
+        analysisExecutionProducer.triggerAnalysis(analysisId,
                 "samples/jee-example-app-1.0.0.ear", sharedFolderPath,
                 null, "eap7,cloud-readiness,quarkus,rhr", null, null);
+        windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Analysis waiting to be executed\",\"totalWork\":1,\"workCompleted\":1}", analysisId));
         return Response
                 .created(URI.create(String.format("/windup/analysis/%d", analysisId)))
                 .header("Issues-Location", URI.create(String.format("/windup/analysis/%d/issues", analysisId)))
