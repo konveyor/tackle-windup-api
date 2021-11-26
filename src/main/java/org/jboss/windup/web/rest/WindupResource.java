@@ -5,11 +5,6 @@ import com.syncleus.ferma.FramedGraph;
 import com.syncleus.ferma.ReflectionCache;
 import com.syncleus.ferma.framefactories.annotation.MethodHandler;
 import com.syncleus.ferma.typeresolvers.PolymorphicTypeResolver;
-import io.vertx.core.cli.annotations.Hidden;
-import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.jboss.windup.web.graph.AnnotationFrameFactory;
-import org.jboss.windup.web.graph.GraphService;
-import org.jboss.windup.web.jms.AnalysisExecutionProducer;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -17,11 +12,10 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.janusgraph.core.JanusGraph;
 import org.janusgraph.core.JanusGraphFactory;
 import org.janusgraph.util.system.ConfigurationUtil;
@@ -36,18 +30,18 @@ import org.jboss.windup.graph.WindupAdjacencyMethodHandler;
 import org.jboss.windup.graph.WindupPropertyMethodHandler;
 import org.jboss.windup.graph.frames.FramedVertexIterable;
 import org.jboss.windup.graph.javahandler.JavaHandlerHandler;
-import org.jboss.windup.graph.model.WindupEdgeFrame;
 import org.jboss.windup.graph.model.WindupFrame;
 import org.jboss.windup.graph.model.WindupVertexFrame;
-import org.jboss.windup.reporting.category.IssueCategoryModel;
 import org.jboss.windup.reporting.model.InlineHintModel;
 import org.jboss.windup.web.addons.websupport.rest.graph.GraphResource;
+import org.jboss.windup.web.graph.AnnotationFrameFactory;
+import org.jboss.windup.web.graph.GraphService;
+import org.jboss.windup.web.jms.AnalysisExecutionProducer;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -93,23 +87,8 @@ public class WindupResource {
 
     @GET
     @Path("/issue")
-    public Response issues(@QueryParam(PATH_PARAM_ANALYSIS_ID) String applicationId) {
-        final ReflectionCache reflections = new ReflectionCache();
-        final AnnotationFrameFactory frameFactory = new AnnotationFrameFactory(reflections, getMethodHandlers());
-        try {
-            JanusGraph centralGraph = graphService.getCentralJanusGraph();
-            FramedGraph framedGraph = new DelegatingFramedGraph<>(centralGraph, frameFactory, new PolymorphicTypeResolver(reflections));
-            LOG.info("...running the query...");
-            final GraphTraversal<Vertex, Vertex> hints = new GraphTraversalSource(centralGraph).V();
-            hints.has(WindupFrame.TYPE_PROP, GraphTypeManager.getTypeValue(InlineHintModel.class));
-            if (StringUtils.isNotBlank(applicationId)) hints.has(PATH_PARAM_ANALYSIS_ID, applicationId);
-            final List<Vertex> issues = hints.toList();
-            LOG.infof("Found %d hints for application ID %s", issues.size(), applicationId);
-            return Response.ok(frameIterableToResult(1L, new FramedVertexIterable<>(framedGraph, issues, InlineHintModel.class), 1)).build();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return Response.serverError().build();
+    public Response issues(@QueryParam(PATH_PARAM_ANALYSIS_ID) String analysisId) {
+        return analysisIssues(analysisId);
     }
 
     @GET
@@ -119,8 +98,10 @@ public class WindupResource {
         final AnnotationFrameFactory frameFactory = new AnnotationFrameFactory(reflections, getMethodHandlers());
         try {
             JanusGraph centralGraph = graphService.getCentralJanusGraph();
+            // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
+            centralGraph.tx().rollback();
             FramedGraph framedGraph = new DelegatingFramedGraph<>(centralGraph, frameFactory, new PolymorphicTypeResolver(reflections));
-            LOG.warnf("...running the query...");
+            LOG.info("...running the query...");
             final GraphTraversal<Vertex, Vertex> hints = new GraphTraversalSource(centralGraph).V();
             hints.has(WindupFrame.TYPE_PROP, GraphTypeManager.getTypeValue(InlineHintModel.class));
             if (StringUtils.isNotBlank(analysisId)) hints.has(PATH_PARAM_ANALYSIS_ID, analysisId);
