@@ -4,6 +4,7 @@
   * [Summary](#summary)
   * [Features](#features)
 - [Technical Considerations](#technical-considerations)
+  * [Requirements](#requirements)
   * [REST endpoints](#rest-endpoints)
   * [Configuration parameters](#configuration-parameters)
     + [Max size for uploaded applications](#max-size-for-uploaded-applications)
