@@ -40,6 +40,18 @@ Features to be added: check the [Issues](https://github.com/windup/windup-api/is
 
 # Technical Considerations
 
+## Requirements
+
+For deploying the "API with sample page" the requirements are:
+
+* 10 GB file system for Persistent Volumes that supports access mode `ReadWriteMany`
+* 10 GB file system for Persistent Volumes that supports access mode `ReadWriteOnce`
+
+For deploying the "API with Tackle" the requirements are:
+
+* 10 GB file system for Persistent Volumes that supports access mode `ReadWriteMany`
+* 14 GB file system for Persistent Volumes that supports access mode `ReadWriteOnce`
+
 ## REST endpoints
 
 All the available endpoints are described with OpenAPI specifications in the [openapi.yaml](src/main/resources/META-INF/openapi.yaml) file.  
