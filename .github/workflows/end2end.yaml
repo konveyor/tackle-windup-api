@@ -1,0 +1,31 @@
+name: Tackle Windup API E2E Tests
+
+on: [pull_request,push]
+
+jobs:
+  minikube:
+    name: minikube
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        kubernetes_version: [v1.20.14, v1.21.8, v1.22.5, v1.23.1]
+      fail-fast: false
+    env:
+      kubernetes_namespace: windup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.5
+
+      - name: Setup Minikube-Kubernetes
+        uses: manusa/actions-setup-minikube@v2.4.3
+        with:
+          minikube version: v1.23.2
+          kubernetes version: ${{ matrix.kubernetes_version }}
+          github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Java 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+          java-package: jdk
