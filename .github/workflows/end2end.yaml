@@ -59,7 +59,8 @@ jobs:
 
       - name: Wait for Tackle Windup API (following README instructions)
         run: |
-         kubectl wait -n ${{env.kubernetes_namespace}} --for condition=Available deployment windup-api --timeout=-1s
+         kubectl -n ${{env.kubernetes_namespace}} describe deployments
+         kubectl wait -n ${{env.kubernetes_namespace}} --for condition=available deployment windup-api --timeout=-1s
 
       - name: E2E test Tackle Windup API
         run: |
