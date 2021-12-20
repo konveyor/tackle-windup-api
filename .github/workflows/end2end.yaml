@@ -56,8 +56,8 @@ jobs:
         run: |
          kubectl create namespace ${{env.kubernetes_namespace}}
          kubectl apply -n ${{env.kubernetes_namespace}} -f minikube.yaml
-#         sed "s\quay.io/windupeng/windup-api:0.0.1-SNAPSHOT\localhost/$USER/windup-api:test\g" minikube.yaml | kubectl apply -n ${{env.kubernetes_namespace}} -f -
          watch kubectl -n ${{env.kubernetes_namespace}} describe deployments
+#         sed "s\quay.io/windupeng/windup-api:0.0.1-SNAPSHOT\localhost/$USER/windup-api:test\g" minikube.yaml | kubectl apply -n ${{env.kubernetes_namespace}} -f -
 
       - name: Wait for Tackle Windup API (following README instructions)
         run: |
