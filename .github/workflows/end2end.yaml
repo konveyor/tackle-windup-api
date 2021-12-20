@@ -1,9 +1,15 @@
-name: Tackle Windup API E2E Tests
+name: Tackle Windup API Tests
 
-on: [pull_request,push]
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 8 * * *'
 
 jobs:
-  minikube:
+  E2E:
     name: minikube
     runs-on: ubuntu-latest
     strategy:
@@ -29,3 +35,32 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
           java-package: jdk
+
+      - name: Cache Maven packages
+        uses: actions/cache@v2.1.6
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build Tackle Windup API container image
+        run: |
+          ./mvnw package -Pcontainer \
+              -Dquarkus.container-image.tag=test \
+              -Dquarkus.container-image.push=false \
+              -Dquarkus.container-image.group=$USER \
+              -Dquarkus.container-image.registry=localhost
+          minikube image load localhost/$USER/windup-api:test
+
+      - name: Deploy Tackle Windup API (following README instructions)
+        run: |
+         kubectl create namespace ${{env.kubernetes_namespace}}
+         sed "s\localhost/{user}/windup-api:0.0.1-SNAPSHOT\localhost/$USER/windup-api:test\g" minikube-development.yaml | kubectl apply -n ${{env.kubernetes_namespace}} -f -
+
+      - name: Wait for Tackle Windup API (following README instructions)
+        run: |
+         kubectl wait -n ${{env.kubernetes_namespace}} --for condition=available deployment windup-api --timeout=-1s
+
+      - name: E2E test Tackle Windup API
+        run: |
+         ./mvnw verify -Dwindup.url=$(minikube service -n ${{env.kubernetes_namespace}} api --url)

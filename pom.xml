@@ -246,6 +246,16 @@
         <artifactId>commons-logging-jboss-logging</artifactId>
         <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-client</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -298,6 +308,25 @@
           </filesets>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>${surefire-plugin.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <systemPropertyVariables>
+                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                <maven.home>${maven.home}</maven.home>
+              </systemPropertyVariables>
+              <trimStackTrace>false</trimStackTrace>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <profiles>
@@ -336,11 +365,29 @@
       </properties>
     </profile>
     <profile>
+      <id>container</id>
+      <activation>
+        <property>
+          <name>container</name>
+        </property>
+      </activation>
+      <properties>
+        <quarkus.container-image.build>true</quarkus.container-image.build>
+      </properties>
+    </profile>
+    <profile>
       <id>podman</id>
       <activation>
         <property>
           <name>!env.DOCKER_HOST</name>
         </property>
+        <file>
+          <missing>/var/run/docker.sock</missing>
+        </file>
+        <os>
+          <name>linux</name>
+          <family>unix</family>
+        </os>
       </activation>
       <build>
         <plugins>
@@ -407,7 +454,7 @@
                   <arguments>
                     <argument>${project.artifactId}</argument>
                     <argument>${project.version}</argument>
-<!--                    <argument>${quarkus.package.type}</argument>-->
+                    <argument>windup-api</argument>
                   </arguments>
                   <async>false</async>
                 </configuration>
