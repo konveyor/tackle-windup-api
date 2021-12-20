@@ -40,10 +40,7 @@ public class WindupE2EIT {
         final WebTarget target = client.target(String.format("%s/%s/analysisSse/", URL, PATH));
         final List<String> received = new CopyOnWriteArrayList<>();
         final SseEventSource source = SseEventSource.target(target).build();
-        source.register(inboundSseEvent -> {
-            System.out.println("inboundSseEvent = " + inboundSseEvent.readData());
-            received.add(inboundSseEvent.readData());
-        });
+        source.register(inboundSseEvent -> received.add(inboundSseEvent.readData()));
         source.open();
 
         // trigger the analysis
