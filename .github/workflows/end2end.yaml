@@ -34,12 +34,25 @@ jobs:
           distribution: 'adopt'
           java-package: jdk
 
+      - name: Build Tackle Windup API container image
+        run: |
+          ./mvnw package -Pcontainer \
+              -Dquarkus.container-image.tag=test \
+              -Dquarkus.container-image.push=false \
+              -Dquarkus.container-image.group=$USER \
+              -Dquarkus.container-image.registry=localhost
+          minikube image load localhost/$USER/windup-api:test
+
       - name: Deploy Tackle Windup API (following README instructions)
         run: |
          kubectl create namespace ${{env.kubernetes_namespace}}
-         sed "s/{user}/$USER/g" minikube-development.yaml | kubectl apply -n ${{env.kubernetes_namespace}} -f -
+         sed "s\quay.io/windupeng/windup-api:0.0.1-SNAPSHOT\localhost/$USER/windup-api:test\g" minikube.yaml | kubectl apply -n ${{env.kubernetes_namespace}} -f -
+         kubectl wait -n ${{env.kubernetes_namespace}} --for condition=Available deployment windup-api --timeout=-1s
+
+      - name: Wait for Tackle Windup API (following README instructions)
+        run: |
          kubectl wait -n ${{env.kubernetes_namespace}} --for condition=Available deployment windup-api --timeout=-1s
 
       - name: E2E test Tackle Windup API
         run: |
-         ./mvnw verify -Pcontainer -Pminikube -Dwindup.url=$(minikube service -n ${{env.kubernetes_namespace}} api --url)
+         ./mvnw verify -Dwindup.url=$(minikube service -n ${{env.kubernetes_namespace}} api --url)
