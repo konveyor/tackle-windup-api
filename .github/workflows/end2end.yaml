@@ -29,3 +29,13 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
           java-package: jdk
+
+      -name: Deploy Tackle Windup API (following README instructions)
+       run: |
+         kubectl create namespace ${{env.kubernetes_namespace}}
+         sed "s/{user}/$USER/g" minikube-development.yaml | kubectl apply -n ${{env.kubernetes_namespace}} -f -
+         kubectl wait -n ${{env.kubernetes_namespace}} --for condition=Available deployment windup-api --timeout=-1s
+
+      -name: E2E test Tackle Windup API
+       run: |
+         ./mvnw verify -Pcontainer -Pminikube -Dwindup.url=$(minikube service -n ${{env.kubernetes_namespace}} api --url)
