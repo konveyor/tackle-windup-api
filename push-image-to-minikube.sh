@@ -15,7 +15,9 @@ then
     echo 'Tagged into minikube the image '$USER'/'$1':'$2
     rm $TAR_PATH
     echo 'Removed file '$TAR_PATH
-    kubectl rollout restart deployment windup-api -n windup
+    kubectl rollout restart deployment $3 -n windup
+    echo 'Restarted deployment '$3', waiting to finish...'
+    kubectl wait -n windup --for condition=Available deployment $3 --timeout=-1s
   else
     echo 'Minikube not running: skip deployment'
   fi
