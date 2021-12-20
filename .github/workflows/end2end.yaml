@@ -56,8 +56,6 @@ jobs:
         run: |
          kubectl create namespace ${{env.kubernetes_namespace}}
          sed "s\localhost/{user}/windup-api:0.0.1-SNAPSHOT\localhost/$USER/windup-api:test\g" minikube-development.yaml | kubectl apply -n ${{env.kubernetes_namespace}} -f -
-         sleep 30
-         kubectl -n ${{env.kubernetes_namespace}} describe deployments
 
       - name: Wait for Tackle Windup API (following README instructions)
         run: |
