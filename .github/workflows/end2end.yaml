@@ -11,10 +11,11 @@ on:
 jobs:
   E2E:
     name: minikube
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         kubernetes_version: [v1.20.14, v1.21.8, v1.22.5, v1.23.1]
+        os: [ubuntu-latest, windows-latest]
       fail-fast: false
     env:
       kubernetes_namespace: windup
@@ -28,6 +29,7 @@ jobs:
           minikube version: v1.23.2
           kubernetes version: ${{ matrix.kubernetes_version }}
           github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: 'docker'
 
       - name: Setup Java 11
         uses: actions/setup-java@v2
