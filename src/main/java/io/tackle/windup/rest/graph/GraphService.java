@@ -1,4 +1,4 @@
-package org.jboss.windup.web.graph;
+package io.tackle.windup.rest.graph;
 
 import com.syncleus.ferma.DelegatingFramedGraph;
 import com.syncleus.ferma.FramedGraph;
@@ -48,7 +48,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import static org.jboss.windup.web.rest.WindupResource.PATH_PARAM_ANALYSIS_ID;
+import static io.tackle.windup.rest.rest.WindupResource.PATH_PARAM_ANALYSIS_ID;
 
 @Startup
 @ApplicationScoped
@@ -56,10 +56,10 @@ public class GraphService {
     private static final Logger LOG = Logger.getLogger(GraphService.class);
     private static final String DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME = "src/main/resources/centralGraphConfiguration.properties";
 
-    @ConfigProperty(defaultValue = DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME, name = "org.jboss.windup.web.graph.central.properties.file.path")
+    @ConfigProperty(defaultValue = DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME, name = "io.tackle.windup.rest.graph.central.properties.file.path")
     File centralGraphProperties;
 
-    @ConfigProperty(defaultValue= "/opt/windup/central-graph", name = "org.jboss.windup.web.central-graph.base.path")
+    @ConfigProperty(defaultValue= "/opt/windup/central-graph", name = "io.tackle.windup.rest.central-graph.base.path")
     String centralGraphBasePath;
 
     private JanusGraph janusGraph;
@@ -91,7 +91,7 @@ public class GraphService {
             LOG.debugf("graph folder can write (%b), read (%b), execute (%b)", graph.toFile().canWrite(), graph.toFile().canRead(), graph.toFile().canExecute());
             // this generates a
             // java.io.IOException: Mount point not found
-	        //   at java.base/sun.nio.fs.LinuxFileStore.findMountEntry(LinuxFileStore.java:105)
+            //   at java.base/sun.nio.fs.LinuxFileStore.findMountEntry(LinuxFileStore.java:105)
             // due to https://gitlab.alpinelinux.org/alpine/aports/-/issues/7093
             Files.getFileStore(graph);
         } catch (IOException e) {
@@ -121,7 +121,7 @@ public class GraphService {
 */
         return janusGraph;
     }
-    
+
     public JanusGraph getCentralJanusGraph() {
         return janusGraph;
     }

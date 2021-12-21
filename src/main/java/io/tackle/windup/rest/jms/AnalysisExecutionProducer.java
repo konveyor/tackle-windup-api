@@ -1,4 +1,4 @@
-package org.jboss.windup.web.jms;
+package io.tackle.windup.rest.jms;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jboss.logging.Logger;

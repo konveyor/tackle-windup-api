@@ -1,10 +1,13 @@
-package org.jboss.windup.web.rest;
+package io.tackle.windup.rest.rest;
 
 import com.syncleus.ferma.DelegatingFramedGraph;
 import com.syncleus.ferma.FramedGraph;
 import com.syncleus.ferma.ReflectionCache;
 import com.syncleus.ferma.framefactories.annotation.MethodHandler;
 import com.syncleus.ferma.typeresolvers.PolymorphicTypeResolver;
+import io.tackle.windup.rest.graph.AnnotationFrameFactory;
+import io.tackle.windup.rest.graph.GraphService;
+import io.tackle.windup.rest.jms.AnalysisExecutionProducer;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -34,9 +37,6 @@ import org.jboss.windup.graph.model.WindupFrame;
 import org.jboss.windup.graph.model.WindupVertexFrame;
 import org.jboss.windup.reporting.model.InlineHintModel;
 import org.jboss.windup.web.addons.websupport.rest.graph.GraphResource;
-import org.jboss.windup.web.graph.AnnotationFrameFactory;
-import org.jboss.windup.web.graph.GraphService;
-import org.jboss.windup.web.jms.AnalysisExecutionProducer;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -70,13 +70,13 @@ public class WindupResource {
     private static final String DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME = "centralGraphConfiguration.properties";
     public static final String PATH_PARAM_ANALYSIS_ID = "analysisId";
 
-    @ConfigProperty(defaultValue = DEFAULT_GRAPH_CONFIGURATION_FILE_NAME, name = "org.jboss.windup.web.graph.properties.file.path")
+    @ConfigProperty(defaultValue = DEFAULT_GRAPH_CONFIGURATION_FILE_NAME, name = "io.tackle.windup.rest.graph.properties.file.path")
     File graphProperties;
 
-    @ConfigProperty(defaultValue = DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME, name = "org.jboss.windup.web.graph.central.properties.file.path")
+    @ConfigProperty(defaultValue = DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME, name = "io.tackle.windup.rest.graph.central.properties.file.path")
     File centralGraphProperties;
 
-    @ConfigProperty(name = "org.jboss.windup.web.shared-folder.path")
+    @ConfigProperty(name = "io.tackle.windup.rest.shared-folder.path")
     String sharedFolderPath;
 
     @Inject

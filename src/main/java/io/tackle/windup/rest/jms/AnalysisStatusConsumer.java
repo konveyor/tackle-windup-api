@@ -1,7 +1,7 @@
-package org.jboss.windup.web.jms;
+package io.tackle.windup.rest.jms;
 
-import org.jboss.windup.web.graph.GraphService;
-import org.jboss.windup.web.rest.WindupBroadcasterResource;
+import io.tackle.windup.rest.graph.GraphService;
+import io.tackle.windup.rest.rest.WindupBroadcasterResource;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import org.jboss.logging.Logger;

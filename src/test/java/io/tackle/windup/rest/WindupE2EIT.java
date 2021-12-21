@@ -1,4 +1,4 @@
-package org.jboss.windup.web.rest;
+package io.tackle.windup.rest;
 
 import io.restassured.http.ContentType;
 import io.restassured.http.Headers;

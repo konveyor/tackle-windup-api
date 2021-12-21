@@ -1,4 +1,4 @@
-package org.jboss.windup.web.rest;
+package io.tackle.windup.rest.rest;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.jboss.resteasy.annotations.providers.multipart.PartType;

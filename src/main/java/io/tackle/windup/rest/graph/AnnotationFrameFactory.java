@@ -1,4 +1,4 @@
-package org.jboss.windup.web.graph;
+package io.tackle.windup.rest.graph;
 
 import com.syncleus.ferma.ReflectionCache;
 import com.syncleus.ferma.framefactories.annotation.AbstractAnnotationFrameFactory;
