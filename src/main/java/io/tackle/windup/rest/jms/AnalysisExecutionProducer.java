@@ -20,10 +20,7 @@ import javax.jms.JMSException;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.Set;
@@ -69,10 +66,7 @@ public class AnalysisExecutionProducer {
             windupExecution.setAnalysisContext(analysisContext);
             windupExecution.setTimeQueued(new GregorianCalendar());
             windupExecution.setState(ExecutionState.QUEUED);
-            Set<PosixFilePermission> permissions = PosixFilePermissions.fromString("rwxrwxrwx");
-            Path outputPath = Path.of(baseOutputPath, Long.toString(analysisId));
-            Files.createDirectories(outputPath, PosixFilePermissions.asFileAttribute(permissions));
-            windupExecution.setOutputPath(outputPath.toString());
+            windupExecution.setOutputPath(Path.of(baseOutputPath, Long.toString(analysisId)).toString());
 
             String json = WindupExecutionJSONUtil.serializeToString(windupExecution);
             executionRequestMessage.setText(json);
