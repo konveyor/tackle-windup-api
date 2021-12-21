@@ -48,7 +48,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import static org.jboss.windup.web.rest.WindupResource.PATH_PARAM_ANALYSIS_ID;
+import static io.tackle.windup.rest.rest.WindupResource.PATH_PARAM_ANALYSIS_ID;
 
 @Startup
 @ApplicationScoped
