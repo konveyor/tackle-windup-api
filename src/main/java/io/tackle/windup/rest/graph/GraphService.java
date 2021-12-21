@@ -6,15 +6,11 @@ import com.syncleus.ferma.ReflectionCache;
 import com.syncleus.ferma.framefactories.annotation.MethodHandler;
 import com.syncleus.ferma.typeresolvers.PolymorphicTypeResolver;
 import io.quarkus.runtime.Startup;
-import io.tackle.windup.rest.rest.WindupBroadcasterResource;
-import io.tackle.windup.rest.rest.WindupResource;
 import org.apache.commons.configuration2.ConfigurationUtils;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.process.traversal.step.util.event.ConsoleMutationListener;
-import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.EventStrategy;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -42,7 +38,6 @@ import org.jboss.windup.graph.model.WindupVertexFrame;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -52,6 +47,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
+import static org.jboss.windup.web.rest.WindupResource.PATH_PARAM_ANALYSIS_ID;
 
 @Startup
 @ApplicationScoped
@@ -64,9 +61,6 @@ public class GraphService {
 
     @ConfigProperty(defaultValue= "/opt/windup/central-graph", name = "org.jboss.windup.web.central-graph.base.path")
     String centralGraphBasePath;
-
-    @Inject
-    WindupBroadcasterResource windupBroadcasterResource;
 
     private JanusGraph janusGraph;
 
@@ -97,7 +91,7 @@ public class GraphService {
             LOG.debugf("graph folder can write (%b), read (%b), execute (%b)", graph.toFile().canWrite(), graph.toFile().canRead(), graph.toFile().canExecute());
             // this generates a
             // java.io.IOException: Mount point not found
-	        //   at java.base/sun.nio.fs.LinuxFileStore.findMountEntry(LinuxFileStore.java:105)
+            //   at java.base/sun.nio.fs.LinuxFileStore.findMountEntry(LinuxFileStore.java:105)
             // due to https://gitlab.alpinelinux.org/alpine/aports/-/issues/7093
             Files.getFileStore(graph);
         } catch (IOException e) {
@@ -111,8 +105,8 @@ public class GraphService {
             janusGraphManagement.buildIndex(WindupFrame.TYPE_PROP, Vertex.class).addKey(typePropPropertyKey).buildCompositeIndex();
             janusGraphManagement.buildIndex("edge-typevalue", Edge.class).addKey(typePropPropertyKey).buildCompositeIndex();
 
-            final PropertyKey applicationIdPropertyKey = janusGraphManagement.makePropertyKey(WindupResource.PATH_PARAM_ANALYSIS_ID).dataType(String.class).cardinality(Cardinality.SINGLE).make();
-            janusGraphManagement.buildIndex(WindupResource.PATH_PARAM_ANALYSIS_ID, Vertex.class).addKey(applicationIdPropertyKey, Mapping.STRING.asParameter()).buildMixedIndex("search");
+            final PropertyKey applicationIdPropertyKey = janusGraphManagement.makePropertyKey(PATH_PARAM_ANALYSIS_ID).dataType(String.class).cardinality(Cardinality.SINGLE).make();
+            janusGraphManagement.buildIndex(PATH_PARAM_ANALYSIS_ID, Vertex.class).addKey(applicationIdPropertyKey, Mapping.STRING.asParameter()).buildMixedIndex("search");
 
             janusGraphManagement.commit();
         }
@@ -127,22 +121,13 @@ public class GraphService {
 */
         return janusGraph;
     }
-    
+
     public JanusGraph getCentralJanusGraph() {
         return janusGraph;
     }
 
-    public GraphTraversalSource getCentralGraphTraversalSource(ProgressMutationListener listener) {
-        // it works only when JanusGraph is used as an embedded library
-        return getCentralJanusGraph()
-                .traversal()
-                .withStrategies(
-                        EventStrategy.build()
-                                .eventQueue(new WindupTransactionalEventQueue(getCentralJanusGraph()))
-                                .addListener(new ConsoleMutationListener(getCentralJanusGraph()))
-                                .addListener(listener)
-                                .create()
-                );
+    public GraphTraversalSource getCentralGraphTraversalSource() {
+        return getCentralJanusGraph().traversal();
     }
 
     public void updateCentralJanusGraph(String sourceGraph, String applicationId) {
@@ -152,12 +137,7 @@ public class GraphService {
         final Map<Object, Object> verticesBeforeAndAfter = new HashMap<>();
         try (JanusGraph janusGraph = openJanusGraph(sourceGraph);
              FramedGraph framedGraph = new DelegatingFramedGraph<>(janusGraph, frameFactory, new PolymorphicTypeResolver(reflections))) {
-            long elementsToBeImported = janusGraph.traversal().V().count().next() + janusGraph.traversal().E().count().next();
-            ProgressMutationListener listener = new ProgressMutationListener();
-            listener.setEventsToBeExecuted(elementsToBeImported);
-            listener.setWindupBroadcasterResource(windupBroadcasterResource);
-            listener.setAnalysisId(applicationId);
-            final GraphTraversalSource centralGraphTraversalSource = getCentralGraphTraversalSource(listener);
+            final GraphTraversalSource centralGraphTraversalSource = getCentralGraphTraversalSource();
             // Delete the previous graph for the PATH_PARAM_ANALYSIS_ID provided
             LOG.infof("Delete the previous vertices with Application ID %s", applicationId);
             if (LOG.isDebugEnabled())
@@ -166,7 +146,7 @@ public class GraphService {
                         centralGraphTraversalSource.V().count().next(),
                         centralGraphTraversalSource.E().count().next());
             final GraphTraversal<Vertex, Vertex> previousVertexGraph = centralGraphTraversalSource.V();
-            previousVertexGraph.has(WindupResource.PATH_PARAM_ANALYSIS_ID, applicationId);
+            previousVertexGraph.has(PATH_PARAM_ANALYSIS_ID, applicationId);
             previousVertexGraph.drop().iterate();
             if (LOG.isDebugEnabled())
                 LOG.debugf("After deletion of vertices with Application ID %s, central graph has %d vertices and %d edges",
@@ -175,9 +155,7 @@ public class GraphService {
                         centralGraphTraversalSource.E().count().next());
 
             final Iterator<WindupVertexFrame> vertexIterator = framedGraph.traverse(g -> g.V().has(WindupFrame.TYPE_PROP)).frame(WindupVertexFrame.class);
-            long elementsImported = -1;
             while (vertexIterator.hasNext()) {
-                if (++elementsImported % 1000 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", applicationId, elementsToBeImported, elementsImported));
                 WindupVertexFrame vertex = vertexIterator.next();
                 LOG.debugf("Adding Vertex %s", vertex);
                 GraphTraversal<Vertex, Vertex> importedVertex = centralGraphTraversalSource.addV();
@@ -191,7 +169,7 @@ public class GraphService {
                             importedVertex.property(property, vertex.getProperty(/*).getElement().properties(*/property));
 //                    importedVertex.setProperty(property, vertex.getProperty(/*).getElement().properties(*/property));
                         });
-                importedVertex.property(WindupResource.PATH_PARAM_ANALYSIS_ID, applicationId);
+                importedVertex.property(PATH_PARAM_ANALYSIS_ID, applicationId);
                 verticesBeforeAndAfter.put(vertex.getElement().id(), importedVertex.next().id());
             }
             if (LOG.isDebugEnabled())
@@ -199,7 +177,6 @@ public class GraphService {
 //            centralGraphTraversalSource.V().toList().forEach(v -> LOG.infof("%s with property %s", v, v.property(PATH_PARAM_ANALYSIS_ID)));
             Iterator<WindupEdgeFrame> edgeIterator = framedGraph.traverse(GraphTraversalSource::E).frame(WindupEdgeFrame.class);
             while (edgeIterator.hasNext()) {
-                if (++elementsImported % 1000 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", applicationId, elementsToBeImported, elementsImported));
                 WindupEdgeFrame edgeFrame = edgeIterator.next();
                 LOG.debugf("Adding Edge %s", edgeFrame.toPrettyString());
                 Edge edge = edgeFrame.getElement();
@@ -233,11 +210,9 @@ public class GraphService {
                             LOG.debugf("Edge %d has property %s with values %s", edge.id(), property, edgeFrame.getProperty(property));
                             importedEdgeTraversal.property(property, edgeFrame.getProperty(property));
                         });
-                Edge importedEdge = importedEdgeTraversal.property(WindupResource.PATH_PARAM_ANALYSIS_ID, applicationId).next();
+                Edge importedEdge = importedEdgeTraversal.property(PATH_PARAM_ANALYSIS_ID, applicationId).next();
                 LOG.debugf("Added Edge %s", importedEdge);
             }
-            // it's "forcing" the numbers to be fine
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", applicationId, elementsToBeImported, elementsToBeImported));
             centralGraphTraversalSource.tx().commit();
         } catch (Exception e) {
             LOG.errorf("Exception occurred: %s", e.getMessage());
