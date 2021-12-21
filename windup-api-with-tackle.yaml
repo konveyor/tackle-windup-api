@@ -3108,7 +3108,7 @@ spec:
               name: http
               protocol: TCP
           env:
-            - name: ORG_JBOSS_WINDUP_WEB_SHARED_FOLDER_PATH
+            - name: IO_TACKLE_WINDUP_REST_SHARED_FOLDER_PATH
               value: "/opt/windup/shared"
             - name: QUARKUS_ARTEMIS_URL
               value: "tcp://artemis:61616"
