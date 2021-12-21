@@ -2,11 +2,11 @@
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.jboss.windup.web</groupId>
+  <groupId>io.tackle</groupId>
   <artifactId>windup-api</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>Windup Web - REST API</name>
-  <description>Migration Tools REST API</description>
+  <name>Tackle Windup API</name>
+  <description>Migration Analysis Tool API </description>
   <properties>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <maven.compiler.parameters>true</maven.compiler.parameters>

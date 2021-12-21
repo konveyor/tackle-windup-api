@@ -1,4 +1,4 @@
-package org.jboss.windup.web.rest;
+package io.tackle.windup.rest.rest;
 
 import com.syncleus.ferma.DelegatingFramedGraph;
 import com.syncleus.ferma.FramedGraph;
@@ -34,9 +34,9 @@ import org.jboss.windup.graph.model.WindupFrame;
 import org.jboss.windup.graph.model.WindupVertexFrame;
 import org.jboss.windup.reporting.model.InlineHintModel;
 import org.jboss.windup.web.addons.websupport.rest.graph.GraphResource;
-import org.jboss.windup.web.graph.AnnotationFrameFactory;
-import org.jboss.windup.web.graph.GraphService;
-import org.jboss.windup.web.jms.AnalysisExecutionProducer;
+import io.tackle.windup.rest.graph.AnnotationFrameFactory;
+import io.tackle.windup.rest.graph.GraphService;
+import io.tackle.windup.rest.jms.AnalysisExecutionProducer;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Path("/windup")
+@Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class WindupResource {
     private static final Logger LOG = Logger.getLogger(WindupResource.class);
@@ -88,6 +89,18 @@ public class WindupResource {
     @Inject
     WindupBroadcasterResource windupBroadcasterResource;
 
+/*
+    @PostConstruct
+    void init() throws IOException {
+        Set<PosixFilePermission> permissions = PosixFilePermissions.fromString("rwxrwxrwx");
+        java.nio.file.Path outputPath = java.nio.file.Path.of(sharedFolderPath);
+        Files.createDirectories(outputPath);
+        Files.setPosixFilePermissions(outputPath, permissions);
+        Set<PosixFilePermission> perms = Files.readAttributes(outputPath, PosixFileAttributes.class).permissions();
+        System.out.format("%s permissions ----after: %s%n", sharedFolderPath, PosixFilePermissions.toString(perms));
+    }
+*/
+
     @GET
     @Path("/issue")
     public Response issues(@QueryParam(PATH_PARAM_ANALYSIS_ID) String analysisId) {
@@ -105,12 +118,24 @@ public class WindupResource {
             centralGraph.tx().rollback();
             FramedGraph framedGraph = new DelegatingFramedGraph<>(centralGraph, frameFactory, new PolymorphicTypeResolver(reflections));
             LOG.info("...running the query...");
-            final GraphTraversal<Vertex, Vertex> hints = new GraphTraversalSource(centralGraph).V();
-            hints.has(WindupFrame.TYPE_PROP, GraphTypeManager.getTypeValue(InlineHintModel.class));
+            GraphTraversalSource graphTraversalSource = new GraphTraversalSource(centralGraph);
+
+            final GraphTraversal<Vertex, Vertex> hints = graphTraversalSource.V().has(WindupFrame.TYPE_PROP, GraphTypeManager.getTypeValue(InlineHintModel.class));
             if (StringUtils.isNotBlank(analysisId)) hints.has(PATH_PARAM_ANALYSIS_ID, analysisId);
-            final List<Vertex> issues = hints.toList();
-            LOG.infof("Found %d hints for application ID %s", issues.size(), analysisId);
-            return Response.ok(frameIterableToResult(1L, new FramedVertexIterable<>(framedGraph, issues, InlineHintModel.class), 1)).build();
+            final List<Vertex> hintIssues = hints.toList();
+            LOG.infof("Found %d hints for application ID %s", hintIssues.size(), analysisId);
+//            return Response.ok(frameIterableToResult(1L, new FramedVertexIterable<>(framedGraph, hintIssues, InlineHintModel.class), 1)).build();
+            List<Map<String, Object>> result = frameIterableToResult(1L, new FramedVertexIterable<>(framedGraph, hintIssues, InlineHintModel.class), 1);
+
+/*
+            final GraphTraversal<Vertex, Vertex> classifications = graphTraversalSource.V().has(WindupFrame.TYPE_PROP, GraphTypeManager.getTypeValue(ClassificationModel.class));
+            if (StringUtils.isNotBlank(analysisId)) classifications.has(PATH_PARAM_ANALYSIS_ID, analysisId);
+            final List<Vertex> classificationIssues = classifications.toList();
+            LOG.infof("Found %d classifications for application ID %s", classificationIssues.size(), analysisId);
+            result.addAll(frameIterableToResult(1L, new FramedVertexIterable<>(framedGraph, classificationIssues, ClassificationModel.class), 1));
+*/
+
+            return Response.ok(result).build();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -149,6 +174,23 @@ public class WindupResource {
                     .header("Analysis-Id", analysisId)
                     .build();
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return Response.serverError().build();
+    }
+
+    @GET
+    @Path("/analysis/")
+    public Response retrieveAnalysis() {
+        try {
+            JanusGraph centralGraph = graphService.getCentralJanusGraph();
+            // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
+            centralGraph.tx().rollback();
+            LOG.info("...running the query...");
+            final List<Object> analysisIds = new GraphTraversalSource(centralGraph).V().has(PATH_PARAM_ANALYSIS_ID).values(PATH_PARAM_ANALYSIS_ID).dedup().order().by(PATH_PARAM_ANALYSIS_ID).toList();
+            LOG.infof("Found %d DIFFERENT Analysis Id", analysisIds.size());
+            return Response.ok(analysisIds).build();
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return Response.serverError().build();

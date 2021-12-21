@@ -1,4 +1,4 @@
-package org.jboss.windup.web.rest;
+package io.tackle.windup.rest.rest;
 
 import javax.inject.Singleton;
 import javax.ws.rs.GET;

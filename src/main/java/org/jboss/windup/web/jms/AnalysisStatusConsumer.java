@@ -1,7 +1,7 @@
-package org.jboss.windup.web.jms;
+package io.tackle.windup.rest.jms;
 
-import org.jboss.windup.web.graph.GraphService;
-import org.jboss.windup.web.rest.WindupBroadcasterResource;
+import io.tackle.windup.rest.graph.GraphService;
+import io.tackle.windup.rest.rest.WindupBroadcasterResource;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import org.jboss.logging.Logger;
@@ -65,7 +65,6 @@ public class AnalysisStatusConsumer implements Runnable {
                     case COMPLETED:
                         LOG.infof("COMPLETED: %s", lastUpdate);
                         String id = Long.toString(message.getLongProperty("projectId"));
-                        windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging into central graph\",\"totalWork\":1,\"workCompleted\":0}", id));
                         graphService.updateCentralJanusGraph(windupExecution.getOutputPath(), id);
                         windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGED\",\"currentTask\":\"Merged into central graph\",\"totalWork\":1,\"workCompleted\":1}", id));
                         // TODO delete the application file now
