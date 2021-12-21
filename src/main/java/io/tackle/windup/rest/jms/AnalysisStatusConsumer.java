@@ -1,9 +1,9 @@
 package io.tackle.windup.rest.jms;
 
-import io.tackle.windup.rest.graph.GraphService;
-import io.tackle.windup.rest.rest.WindupBroadcasterResource;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
+import io.tackle.windup.rest.graph.GraphService;
+import io.tackle.windup.rest.rest.WindupBroadcasterResource;
 import org.jboss.logging.Logger;
 import org.jboss.windup.web.services.json.WindupExecutionJSONUtil;
 import org.jboss.windup.web.services.model.WindupExecution;
