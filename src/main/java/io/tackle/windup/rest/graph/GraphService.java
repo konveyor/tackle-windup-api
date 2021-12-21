@@ -56,10 +56,10 @@ public class GraphService {
     private static final Logger LOG = Logger.getLogger(GraphService.class);
     private static final String DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME = "src/main/resources/centralGraphConfiguration.properties";
 
-    @ConfigProperty(defaultValue = DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME, name = "org.jboss.windup.web.graph.central.properties.file.path")
+    @ConfigProperty(defaultValue = DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME, name = "io.tackle.windup.rest.graph.central.properties.file.path")
     File centralGraphProperties;
 
-    @ConfigProperty(defaultValue= "/opt/windup/central-graph", name = "org.jboss.windup.web.central-graph.base.path")
+    @ConfigProperty(defaultValue= "/opt/windup/central-graph", name = "io.tackle.windup.rest.central-graph.base.path")
     String centralGraphBasePath;
 
     private JanusGraph janusGraph;

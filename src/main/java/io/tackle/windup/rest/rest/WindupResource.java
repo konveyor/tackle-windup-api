@@ -70,13 +70,13 @@ public class WindupResource {
     private static final String DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME = "centralGraphConfiguration.properties";
     public static final String PATH_PARAM_ANALYSIS_ID = "analysisId";
 
-    @ConfigProperty(defaultValue = DEFAULT_GRAPH_CONFIGURATION_FILE_NAME, name = "org.jboss.windup.web.graph.properties.file.path")
+    @ConfigProperty(defaultValue = DEFAULT_GRAPH_CONFIGURATION_FILE_NAME, name = "io.tackle.windup.rest.graph.properties.file.path")
     File graphProperties;
 
-    @ConfigProperty(defaultValue = DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME, name = "org.jboss.windup.web.graph.central.properties.file.path")
+    @ConfigProperty(defaultValue = DEFAULT_CENTRAL_GRAPH_CONFIGURATION_FILE_NAME, name = "io.tackle.windup.rest.graph.central.properties.file.path")
     File centralGraphProperties;
 
-    @ConfigProperty(name = "org.jboss.windup.web.shared-folder.path")
+    @ConfigProperty(name = "io.tackle.windup.rest.shared-folder.path")
     String sharedFolderPath;
 
     @Inject
