@@ -23,9 +23,9 @@
 
 ## Summary
 
-The Windup API component is a Kubernetes application meant to provide access to information created from Windup's rules execution during an analysis.  
+The Tackle Windup API component is a Kubernetes application meant to provide access to information created from Windup's rules execution during an analysis.  
 The project and the code are at an ***early development stage*** so keep in mind the API endpoints are not stable yet but in tech preview.  
-That's why we would like to listen to your feedback opening a new [Issue](https://github.com/windup/windup-api/issues) to tell us what went well and what can be improved.  
+That's why we would like to listen to your feedback opening a new [Issue](https://github.com/konveyor/tackle-windup-api/issues) to tell us what went well and what can be improved.  
 Please check frequently for updates and new features additions.  
 
 ## Features
@@ -36,21 +36,21 @@ Features available:
 * retrieve the hints for all the applications analyzed
 * get analysis status updates while analysis is running
 
-Features to be added: check the [Issues](https://github.com/windup/windup-api/issues) for enhancements already planned and feel free to add your request for new features if it's not there yet.  
+Features to be added: check the [Issues](https://github.com/konveyor/tackle-windup-api/issues) for enhancements already planned and feel free to add your request for new features if it's not there yet.  
 
 # Technical Considerations
 
 ## REST endpoints
 
 All the available endpoints are described with OpenAPI specifications in the [openapi.yaml](src/main/resources/META-INF/openapi.yaml) file.  
-It can be analyzed, for example, with the online [Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/windup/windup-api/main/src/main/resources/META-INF/openapi.yaml)  
-A Swagger UI is also embedded in the Windup API and accessible from the provided sample page as described below in the [API with Swagger](#api-with-swagger) paragraph.  
+It can be analyzed, for example, with the online [Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/konveyor/tackle-windup-api/main/src/main/resources/META-INF/openapi.yaml)  
+A Swagger UI is also embedded in the Tackle Windup API and accessible from the provided sample page as described below in the [API with Swagger](#api-with-swagger) paragraph.  
 
 ## Configuration parameters
 
 ### Max size for uploaded applications
 
-Windup API default configuration allows the upload of applications up to 100 MB.  
+Tackle Windup API default configuration allows the upload of applications up to 100 MB.  
 This size can be changed applying a different value to the `QUARKUS_HTTP_LIMITS_MAX_BODY_SIZE` environment variable executing:
 ```shell
 kubectl set -n windup env deployment windup-api QUARKUS_HTTP_LIMITS_MAX_BODY_SIZE="<new_value>"
@@ -68,12 +68,12 @@ Once Minikube is up and running, create the `windup` namespace executing
 ```shell
 kubectl create namespace windup
 ```
-and then deploy the Windup API using
+and then deploy the Tackle Windup API using
 ```shell
-kubectl apply -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/minikube.yaml
+kubectl apply -n windup -f https://raw.githubusercontent.com/konveyor/tackle-windup-api/main/minikube.yaml
 ```
 Now all the images for running the containers are going to be pulled, so it might take some time (:coffee: ?).  
-You can know when the Windup API is available, waiting for the `windup-api` deployment to meet the `Available` condition execution:
+You can know when the Tackle Windup API is available, waiting for the `windup-api` deployment to meet the `Available` condition execution:
 ```shell
 kubectl wait -n windup --for condition=Available deployment windup-api --timeout=-1s
 ```
@@ -81,7 +81,7 @@ As soon as the `windup-api` deployment will be available, the following message 
 ```shell
 deployment.apps/windup-api condition met
 ```
-Now you can start testing the Windup API leveraging the provided sample page executing
+Now you can start testing the Tackle Windup API leveraging the provided sample page executing
 ```shell
 minikube service -n windup api
 ```
@@ -90,14 +90,14 @@ Now you can move to the [Usage Guide - API with Swagger](#api-with-swagger) and 
 
 If later you want to remove all the resources create, you can run:  
 ```shell
-kubectl delete -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/minikube.yaml
+kubectl delete -n windup -f https://raw.githubusercontent.com/konveyor/tackle-windup-api/main/minikube.yaml
 kubectl delete namespace windup
 ```
 
 ### API with Tackle
 
-An early (i.e. proof of concept) integration between [Tackle](https://github.com/konveyor/tackle), the tools that support the modernization and migration of applications to Kubernetes from [Konveyor](https://www.konveyor.io/) community, and Windup API is available.  
-A kubernetes manifest for deploying the integrated versions of Tackle and Windup API is provided.  
+An early (i.e. proof of concept) integration between [Tackle](https://github.com/konveyor/tackle), the tools that support the modernization and migration of applications to Kubernetes from [Konveyor](https://www.konveyor.io/) community, and Tackle Windup API is available.  
+A kubernetes manifest for deploying the integrated versions of Tackle and Tackle Windup API is provided.  
 Before deploying it, enable the `ingress` Minikube addon with  
 ```shell
 minikube addons enable ingress
@@ -108,7 +108,7 @@ kubectl create namespace windup
 ```
 and then executing  
 ```shell
-kubectl apply -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/windup-api-with-tackle.yaml
+kubectl apply -n windup -f https://raw.githubusercontent.com/konveyor/tackle-windup-api/main/windup-api-with-tackle.yaml
 ```
 You can check if the deployments have been successfully done executing and waiting for the next command to finish  
 ```shell
@@ -149,7 +149,7 @@ oc new-project windup
 
 then upload API's template to your project executing
 ```shell
-oc create -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/openshift/windup-api.yaml
+oc create -n windup -f https://raw.githubusercontent.com/konveyor/tackle-windup-api/main/openshift/windup-api.yaml
 ```
 
 finally, instantiate the template executing:
@@ -159,7 +159,7 @@ oc process windup-api -n windup | oc create -f -
 
 Now all the images for running the containers are going to be pulled, so it might take some time.
 
-You can know when the Windup API is available, waiting for the `windup-api` deployment to meet the `Available` condition execution:
+You can know when the Tackle Windup API is available, waiting for the `windup-api` deployment to meet the `Available` condition execution:
 ```shell
 oc wait -n windup --for condition=Available deployment windup-api --timeout=-1s
 ```
@@ -169,7 +169,7 @@ As soon as the `windup-api` deployment will be available, the following message 
 deployment.apps/windup-api condition met
 ```
 
-Now you can start testing the Windup API opening, in your browser, the Route url provided by OCP.  
+Now you can start testing the Tackle Windup API opening, in your browser, the Route url provided by OCP.  
 The route's URL is the value provided in the `HOST/PORT` column in the output of the command:
 ```shell
 oc get routes -n windup
@@ -179,15 +179,15 @@ Now you can move to the [Usage Guide - API with Swagger](#api-with-swagger) and 
 
 If later you want to remove all the resources created, you can run:  
 ```shell
-oc delete -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/openshift/windup-api.yaml
+oc delete -n windup -f https://raw.githubusercontent.com/konveyor/tackle-windup-api/main/openshift/windup-api.yaml
 oc delete project windup
 ```
 
 ### API with Tackle
 
-An early (i.e. proof of concept) integration between [Tackle](https://github.com/konveyor/tackle), the tools that support the modernization and migration of applications to Kubernetes from [Konveyor](https://www.konveyor.io/) community, and Windup API is available.
+An early (i.e. proof of concept) integration between [Tackle](https://github.com/konveyor/tackle), the tools that support the modernization and migration of applications to Kubernetes from [Konveyor](https://www.konveyor.io/) community, and Tackle Windup API is available.
 
-A kubernetes manifest for deploying the integrated versions of Tackle and Windup API is provided.  
+A kubernetes manifest for deploying the integrated versions of Tackle and Tackle Windup API is provided.  
 
 On your OCP instance, create a project `windup` executing
 ```shell
@@ -196,7 +196,7 @@ oc new-project windup
 
 then upload API's template to your project executing
 ```shell
-oc create -n windup -f https://raw.githubusercontent.com/windup/windup-api/main/openshift/windup-api-with-tackle.yaml
+oc create -n windup -f https://raw.githubusercontent.com/konveyor/tackle-windup-api/main/openshift/windup-api-with-tackle.yaml
 ```
 
 finally, instantiate the template executing:
@@ -246,7 +246,7 @@ This is useful for quickly execute some tests of the endpoints.
 
 ## API with sample page
 
-The provided sample page (see below screenshot) is meant to ease the initial testing with the Windup API.  
+The provided sample page (see below screenshot) is meant to ease the initial testing with the Tackle Windup API.  
 
 ![Windup Sample Page](docs/images/windup-sample-page.png?raw=true "Windup Sample Page")
 
@@ -259,6 +259,6 @@ The sample configuration will analyze the [jee-example-app-1.0.0.ear](./src/main
 ## API with Tackle
 
 The credentials to login into the Tackle UI are username `tackle` and password `password`.  
-Then, once a new application has been created, the `Analyze` command -for triggering an analysis with Windup API- is available in the right menu in the application row (see next screenshot).  
+Then, once a new application has been created, the `Analyze` command -for triggering an analysis with Tackle Windup API- is available in the right menu in the application row (see next screenshot).  
 
 ![Tackle analyze application](docs/images/tackle-select-analyze.png?raw=true "Tackle analyze application")  
