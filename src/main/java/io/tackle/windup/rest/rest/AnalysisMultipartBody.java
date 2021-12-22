@@ -1,6 +1,5 @@
 package io.tackle.windup.rest.rest;
 
-import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.jboss.resteasy.annotations.providers.multipart.PartType;
 
 import javax.ws.rs.DefaultValue;

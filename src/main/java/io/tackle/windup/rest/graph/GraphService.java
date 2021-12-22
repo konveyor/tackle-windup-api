@@ -6,6 +6,7 @@ import com.syncleus.ferma.ReflectionCache;
 import com.syncleus.ferma.framefactories.annotation.MethodHandler;
 import com.syncleus.ferma.typeresolvers.PolymorphicTypeResolver;
 import io.quarkus.runtime.Startup;
+import io.tackle.windup.rest.rest.WindupBroadcasterResource;
 import org.apache.commons.configuration2.ConfigurationUtils;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
@@ -38,6 +39,7 @@ import org.jboss.windup.graph.model.WindupVertexFrame;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -61,6 +63,9 @@ public class GraphService {
 
     @ConfigProperty(defaultValue= "/opt/windup/central-graph", name = "io.tackle.windup.rest.central-graph.base.path")
     String centralGraphBasePath;
+
+    @Inject
+    WindupBroadcasterResource windupBroadcasterResource;
 
     private JanusGraph janusGraph;
 
@@ -137,6 +142,7 @@ public class GraphService {
         final Map<Object, Object> verticesBeforeAndAfter = new HashMap<>();
         try (JanusGraph janusGraph = openJanusGraph(sourceGraph);
              FramedGraph framedGraph = new DelegatingFramedGraph<>(janusGraph, frameFactory, new PolymorphicTypeResolver(reflections))) {
+            long elementsToBeImported = janusGraph.traversal().V().count().next() + janusGraph.traversal().E().count().next();
             final GraphTraversalSource centralGraphTraversalSource = getCentralGraphTraversalSource();
             // Delete the previous graph for the PATH_PARAM_ANALYSIS_ID provided
             LOG.infof("Delete the previous vertices with Application ID %s", applicationId);
@@ -155,7 +161,9 @@ public class GraphService {
                         centralGraphTraversalSource.E().count().next());
 
             final Iterator<WindupVertexFrame> vertexIterator = framedGraph.traverse(g -> g.V().has(WindupFrame.TYPE_PROP)).frame(WindupVertexFrame.class);
+            long elementsImported = -1;
             while (vertexIterator.hasNext()) {
+                if (++elementsImported % 1000 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", applicationId, elementsToBeImported, elementsImported));
                 WindupVertexFrame vertex = vertexIterator.next();
                 LOG.debugf("Adding Vertex %s", vertex);
                 GraphTraversal<Vertex, Vertex> importedVertex = centralGraphTraversalSource.addV();
@@ -177,6 +185,7 @@ public class GraphService {
 //            centralGraphTraversalSource.V().toList().forEach(v -> LOG.infof("%s with property %s", v, v.property(PATH_PARAM_ANALYSIS_ID)));
             Iterator<WindupEdgeFrame> edgeIterator = framedGraph.traverse(GraphTraversalSource::E).frame(WindupEdgeFrame.class);
             while (edgeIterator.hasNext()) {
+                if (++elementsImported % 1000 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", applicationId, elementsToBeImported, elementsImported));
                 WindupEdgeFrame edgeFrame = edgeIterator.next();
                 LOG.debugf("Adding Edge %s", edgeFrame.toPrettyString());
                 Edge edge = edgeFrame.getElement();
@@ -213,6 +222,8 @@ public class GraphService {
                 Edge importedEdge = importedEdgeTraversal.property(PATH_PARAM_ANALYSIS_ID, applicationId).next();
                 LOG.debugf("Added Edge %s", importedEdge);
             }
+            // it's "forcing" the numbers to be fine
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", applicationId, elementsToBeImported, elementsToBeImported));
             centralGraphTraversalSource.tx().commit();
         } catch (Exception e) {
             LOG.errorf("Exception occurred: %s", e.getMessage());

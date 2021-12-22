@@ -88,6 +88,8 @@ public class WindupE2EIT {
         // so searching for some patterns will let the assertions do the validation
         // check the "COMPLETED" event from the windup-executor pod has been sent
         assertEquals(1, received.stream().filter(s -> s.contains("\"totalWork\":1581,\"workCompleted\":1582,\"currentTask\":\"PostFinalizePhase - DeleteWorkDirsAtTheEndRuleProvider - DeleteWorkDirsAtTheEndRuleProvider_2\"")).count());
+        // check (at least) a merging event has been sent
+        assertTrue(received.stream().anyMatch(event -> event.contains(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\"", analysisId))));
         // check the merge finished event has been sent
         assertTrue(received.contains(String.format("{\"id\":%s,\"state\":\"MERGED\",\"currentTask\":\"Merged into central graph\",\"totalWork\":1,\"workCompleted\":1}", analysisId)));
 
