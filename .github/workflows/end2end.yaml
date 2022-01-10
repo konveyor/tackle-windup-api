@@ -31,6 +31,9 @@ jobs:
 #          github token: ${{ secrets.GITHUB_TOKEN }}
 #          driver: 'docker'
 
+      - name: Setup Windows subsystem for Linux
+        uses: Vampire/setup-wsl@v1
+
       - name: start minikube
         uses: medyagh/setup-minikube@master
         with:
