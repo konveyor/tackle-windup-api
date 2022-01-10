@@ -45,6 +45,7 @@ jobs:
         run: |
           brew install docker-machine docker
           sudo docker --version
+          docker version --format '{{.Server.Version}}'
           VBoxManage --version
           sysctl hw.physicalcpu hw.logicalcpu
 
