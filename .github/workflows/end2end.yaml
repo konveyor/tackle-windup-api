@@ -51,7 +51,6 @@ jobs:
       - name: start minikube
         uses: medyagh/setup-minikube@latest
         with:
-          minikube-version: 1.23.2
           kubernetes-version: ${{ matrix.kubernetes_version }}
 
       - name: Setup Java 11
