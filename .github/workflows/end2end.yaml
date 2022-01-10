@@ -43,8 +43,10 @@ jobs:
       - name: Install Tools for MacOs
         if: matrix.os == 'macos-10.15'
         run: |
-          brew install docker-machine docker
-          sudo docker --version
+          brew install podman
+          podman machine init
+          podman machine start
+          podman info
           docker version --format '{{.Server.Version}}'
           VBoxManage --version
           sysctl hw.physicalcpu hw.logicalcpu
