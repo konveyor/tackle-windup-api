@@ -49,7 +49,7 @@ jobs:
           sysctl hw.physicalcpu hw.logicalcpu
 
       - name: start minikube
-        uses: medyagh/setup-minikube@master
+        uses: medyagh/setup-minikube@latest
         with:
           minikube-version: 1.23.2
           driver: docker
