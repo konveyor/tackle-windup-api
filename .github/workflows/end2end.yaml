@@ -32,7 +32,13 @@ jobs:
 #          driver: 'docker'
 
       - name: Setup Windows subsystem for Linux
+        if: matrix.os == 'windows-latest'
         uses: Vampire/setup-wsl@v1
+
+      - name: Perform a Pester test from the command-line
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: restart-service *docker*
 
       - name: start minikube
         uses: medyagh/setup-minikube@master
