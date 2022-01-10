@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         kubernetes_version: [v1.20.14, v1.21.8, v1.22.5, v1.23.1]
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
       fail-fast: false
     env:
       kubernetes_namespace: windup
@@ -35,10 +35,18 @@ jobs:
         if: matrix.os == 'windows-latest'
         uses: Vampire/setup-wsl@v1
 
-      - name: Perform a Pester test from the command-line
+      - name: Perform Docker restart from the command-line
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: restart-service *docker*
+
+      - name: Install Tools for MacOs
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install docker-machine docker
+          sudo docker --version
+          VBoxManage --version
+          sysctl hw.physicalcpu hw.logicalcpu
 
       - name: start minikube
         uses: medyagh/setup-minikube@master
