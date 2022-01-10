@@ -35,6 +35,8 @@ jobs:
         uses: medyagh/setup-minikube@master
         with:
           minikube-version: 1.23.2
+          driver: docker
+          kubernetes-version: ${{ matrix.kubernetes_version }}
 
       - name: Setup Java 11
         uses: actions/setup-java@v2
