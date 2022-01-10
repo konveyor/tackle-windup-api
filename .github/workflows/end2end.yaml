@@ -48,6 +48,7 @@ jobs:
           podman machine start
           podman info
           podman version --format '{{.Server.Version}}'
+          alias docker=podman
           docker version --format '{{.Server.Version}}'
           VBoxManage --version
           sysctl hw.physicalcpu hw.logicalcpu
