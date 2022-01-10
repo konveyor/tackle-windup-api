@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         kubernetes_version: [v1.20.14, v1.21.8, v1.22.5, v1.23.1]
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-10.15]
       fail-fast: false
     env:
       kubernetes_namespace: windup
@@ -41,7 +41,7 @@ jobs:
         run: restart-service *docker*
 
       - name: Install Tools for MacOs
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-10.15'
         run: |
           brew install docker-machine docker
           sudo docker --version
