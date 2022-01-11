@@ -110,8 +110,8 @@ public class GraphService {
             janusGraphManagement.buildIndex(WindupFrame.TYPE_PROP, Vertex.class).addKey(typePropPropertyKey).buildCompositeIndex();
             janusGraphManagement.buildIndex("edge-typevalue", Edge.class).addKey(typePropPropertyKey).buildCompositeIndex();
 
-            final PropertyKey applicationIdPropertyKey = janusGraphManagement.makePropertyKey(PATH_PARAM_ANALYSIS_ID).dataType(String.class).cardinality(Cardinality.SINGLE).make();
-            janusGraphManagement.buildIndex(PATH_PARAM_ANALYSIS_ID, Vertex.class).addKey(applicationIdPropertyKey, Mapping.STRING.asParameter()).buildMixedIndex("search");
+            final PropertyKey analysisIdPropertyKey = janusGraphManagement.makePropertyKey(PATH_PARAM_ANALYSIS_ID).dataType(String.class).cardinality(Cardinality.SINGLE).make();
+            janusGraphManagement.buildIndex(PATH_PARAM_ANALYSIS_ID, Vertex.class).addKey(analysisIdPropertyKey, Mapping.STRING.asParameter()).buildMixedIndex("search");
 
             janusGraphManagement.commit();
         }
@@ -135,7 +135,7 @@ public class GraphService {
         return getCentralJanusGraph().traversal();
     }
 
-    public void updateCentralJanusGraph(String sourceGraph, String applicationId) {
+    public void updateCentralJanusGraph(String sourceGraph, String analysisId) {
         LOG.infof("Start...");
         final ReflectionCache reflections = new ReflectionCache();
         final AnnotationFrameFactory frameFactory = new AnnotationFrameFactory(reflections, getMethodHandlers());
@@ -145,25 +145,25 @@ public class GraphService {
             long elementsToBeImported = janusGraph.traversal().V().count().next() + janusGraph.traversal().E().count().next();
             final GraphTraversalSource centralGraphTraversalSource = getCentralGraphTraversalSource();
             // Delete the previous graph for the PATH_PARAM_ANALYSIS_ID provided
-            LOG.infof("Delete the previous vertices with Application ID %s", applicationId);
+            LOG.infof("Delete the previous vertices with Analysis ID %s", analysisId);
             if (LOG.isDebugEnabled())
-                LOG.debugf("Before deleting vertices with Application ID %s, central graph has %d vertices and %d edges",
-                        applicationId,
+                LOG.debugf("Before deleting vertices with Analysis ID %s, central graph has %d vertices and %d edges",
+                        analysisId,
                         centralGraphTraversalSource.V().count().next(),
                         centralGraphTraversalSource.E().count().next());
             final GraphTraversal<Vertex, Vertex> previousVertexGraph = centralGraphTraversalSource.V();
-            previousVertexGraph.has(PATH_PARAM_ANALYSIS_ID, applicationId);
+            previousVertexGraph.has(PATH_PARAM_ANALYSIS_ID, analysisId);
             previousVertexGraph.drop().iterate();
             if (LOG.isDebugEnabled())
-                LOG.debugf("After deletion of vertices with Application ID %s, central graph has %d vertices and %d edges",
-                        applicationId,
+                LOG.debugf("After deletion of vertices with Analysis ID %s, central graph has %d vertices and %d edges",
+                        analysisId,
                         centralGraphTraversalSource.V().count().next(),
                         centralGraphTraversalSource.E().count().next());
 
             final Iterator<WindupVertexFrame> vertexIterator = framedGraph.traverse(g -> g.V().has(WindupFrame.TYPE_PROP)).frame(WindupVertexFrame.class);
             long elementsImported = -1;
             while (vertexIterator.hasNext()) {
-                if (++elementsImported % 1000 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", applicationId, elementsToBeImported, elementsImported));
+                if (++elementsImported % 1000 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", analysisId, elementsToBeImported, elementsImported));
                 WindupVertexFrame vertex = vertexIterator.next();
                 LOG.debugf("Adding Vertex %s", vertex);
                 GraphTraversal<Vertex, Vertex> importedVertex = centralGraphTraversalSource.addV();
@@ -177,7 +177,7 @@ public class GraphService {
                             importedVertex.property(property, vertex.getProperty(/*).getElement().properties(*/property));
 //                    importedVertex.setProperty(property, vertex.getProperty(/*).getElement().properties(*/property));
                         });
-                importedVertex.property(PATH_PARAM_ANALYSIS_ID, applicationId);
+                importedVertex.property(PATH_PARAM_ANALYSIS_ID, analysisId);
                 verticesBeforeAndAfter.put(vertex.getElement().id(), importedVertex.next().id());
             }
             if (LOG.isDebugEnabled())
@@ -185,7 +185,7 @@ public class GraphService {
 //            centralGraphTraversalSource.V().toList().forEach(v -> LOG.infof("%s with property %s", v, v.property(PATH_PARAM_ANALYSIS_ID)));
             Iterator<WindupEdgeFrame> edgeIterator = framedGraph.traverse(GraphTraversalSource::E).frame(WindupEdgeFrame.class);
             while (edgeIterator.hasNext()) {
-                if (++elementsImported % 1000 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", applicationId, elementsToBeImported, elementsImported));
+                if (++elementsImported % 1000 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", analysisId, elementsToBeImported, elementsImported));
                 WindupEdgeFrame edgeFrame = edgeIterator.next();
                 LOG.debugf("Adding Edge %s", edgeFrame.toPrettyString());
                 Edge edge = edgeFrame.getElement();
@@ -219,11 +219,11 @@ public class GraphService {
                             LOG.debugf("Edge %d has property %s with values %s", edge.id(), property, edgeFrame.getProperty(property));
                             importedEdgeTraversal.property(property, edgeFrame.getProperty(property));
                         });
-                Edge importedEdge = importedEdgeTraversal.property(PATH_PARAM_ANALYSIS_ID, applicationId).next();
+                Edge importedEdge = importedEdgeTraversal.property(PATH_PARAM_ANALYSIS_ID, analysisId).next();
                 LOG.debugf("Added Edge %s", importedEdge);
             }
             // it's "forcing" the numbers to be fine
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", applicationId, elementsToBeImported, elementsToBeImported));
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", analysisId, elementsToBeImported, elementsToBeImported));
             centralGraphTraversalSource.tx().commit();
         } catch (Exception e) {
             LOG.errorf("Exception occurred: %s", e.getMessage());
