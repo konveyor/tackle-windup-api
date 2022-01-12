@@ -145,20 +145,7 @@ public class GraphService {
             long elementsToBeImported = janusGraph.traversal().V().count().next() + janusGraph.traversal().E().count().next();
             final GraphTraversalSource centralGraphTraversalSource = getCentralGraphTraversalSource();
             // Delete the previous graph for the PATH_PARAM_ANALYSIS_ID provided
-            LOG.infof("Delete the previous vertices with Analysis ID %s", analysisId);
-            if (LOG.isDebugEnabled())
-                LOG.debugf("Before deleting vertices with Analysis ID %s, central graph has %d vertices and %d edges",
-                        analysisId,
-                        centralGraphTraversalSource.V().count().next(),
-                        centralGraphTraversalSource.E().count().next());
-            final GraphTraversal<Vertex, Vertex> previousVertexGraph = centralGraphTraversalSource.V();
-            previousVertexGraph.has(PATH_PARAM_ANALYSIS_ID, analysisId);
-            previousVertexGraph.drop().iterate();
-            if (LOG.isDebugEnabled())
-                LOG.debugf("After deletion of vertices with Analysis ID %s, central graph has %d vertices and %d edges",
-                        analysisId,
-                        centralGraphTraversalSource.V().count().next(),
-                        centralGraphTraversalSource.E().count().next());
+            deleteSubGraph(centralGraphTraversalSource, analysisId);
 
             final Iterator<WindupVertexFrame> vertexIterator = framedGraph.traverse(g -> g.V().has(WindupFrame.TYPE_PROP)).frame(WindupVertexFrame.class);
             long elementsImported = -1;
@@ -231,6 +218,29 @@ public class GraphService {
             throw new RuntimeException(e);
         }
         LOG.infof("...end");
+    }
+
+    public void deleteAnalysisGraphFromCentralGraph(String analysisId) {
+        deleteSubGraph(getCentralGraphTraversalSource(), analysisId);
+    }
+
+    private void deleteSubGraph(GraphTraversalSource centralGraphTraversalSource, String analysisId) {
+        // Delete the previous graph for the PATH_PARAM_ANALYSIS_ID provided
+        LOG.infof("Delete the previous vertices with Analysis ID %s", analysisId);
+        if (LOG.isDebugEnabled())
+            LOG.debugf("Before deleting vertices with Analysis ID %s, central graph has %d vertices and %d edges",
+                    analysisId,
+                    centralGraphTraversalSource.V().count().next(),
+                    centralGraphTraversalSource.E().count().next());
+        final GraphTraversal<Vertex, Vertex> previousVertexGraph = centralGraphTraversalSource.V();
+        previousVertexGraph.has(PATH_PARAM_ANALYSIS_ID, analysisId);
+        previousVertexGraph.drop().iterate();
+        centralGraphTraversalSource.tx().commit();
+        if (LOG.isDebugEnabled())
+            LOG.debugf("After deletion of vertices with Analysis ID %s, central graph has %d vertices and %d edges",
+                    analysisId,
+                    centralGraphTraversalSource.V().count().next(),
+                    centralGraphTraversalSource.E().count().next());
     }
 
     protected Set<MethodHandler> getMethodHandlers() {

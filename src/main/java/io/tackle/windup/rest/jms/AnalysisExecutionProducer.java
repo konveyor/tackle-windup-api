@@ -38,12 +38,12 @@ public class AnalysisExecutionProducer {
     public void triggerAnalysis(long analysisId, String applicationFilePath, String baseOutputPath, String sources, String targets, String packages, Boolean sourceMode) {
         LOG.debugf("JMS Connection Factory: %s", connectionFactory.toString());
         try (JMSContext context = connectionFactory.createContext(Session.AUTO_ACKNOWLEDGE)) {
-            TextMessage executionRequestMessage = context.createTextMessage();
+            final TextMessage executionRequestMessage = context.createTextMessage();
 
             executionRequestMessage.setLongProperty("projectId", analysisId);
             executionRequestMessage.setLongProperty("executionId", analysisId);
 
-            AnalysisContext analysisContext = new AnalysisContext();
+            final AnalysisContext analysisContext = new AnalysisContext();
             analysisContext.setGenerateStaticReports(false);
 
             analysisContext.setAdvancedOptions(Stream.of(targets.split(",")).map(targetValue -> new AdvancedOption("target", targetValue.trim())).collect(Collectors.toList()));
@@ -51,24 +51,24 @@ public class AnalysisExecutionProducer {
             if (StringUtils.isNotBlank(packages)) analysisContext.setIncludePackages(Stream.of(packages.split(",")).map(packageValue -> new Package(packageValue.trim(), packageValue.trim(), false)).collect(Collectors.toSet()));
             if (sourceMode != null) analysisContext.getAdvancedOptions().add(new AdvancedOption("sourceMode", sourceMode.toString()));
 
-            RulesPath rulesPath = new RulesPath();
+            final RulesPath rulesPath = new RulesPath();
             rulesPath.setPath("/opt/mta-cli/rules");
             rulesPath.setScanRecursively(true);
             rulesPath.setRulesPathType(PathType.SYSTEM_PROVIDED);
             analysisContext.setRulesPaths(Collections.singleton(rulesPath));
 
-            RegisteredApplication registeredApplication = new RegisteredApplication();
+            final RegisteredApplication registeredApplication = new RegisteredApplication();
             registeredApplication.setInputPath(applicationFilePath);
             analysisContext.setApplications(Set.of(registeredApplication));
 
-            WindupExecution windupExecution = new WindupExecution();
+            final WindupExecution windupExecution = new WindupExecution();
             windupExecution.setId(analysisId);
             windupExecution.setAnalysisContext(analysisContext);
             windupExecution.setTimeQueued(new GregorianCalendar());
             windupExecution.setState(ExecutionState.QUEUED);
             windupExecution.setOutputPath(Path.of(baseOutputPath, Long.toString(analysisId)).toString());
 
-            String json = WindupExecutionJSONUtil.serializeToString(windupExecution);
+            final String json = WindupExecutionJSONUtil.serializeToString(windupExecution);
             executionRequestMessage.setText(json);
             LOG.infof("Going to send the Windup execution request %s", json);
             context.createProducer().send(context.createQueue("executorQueue"), executionRequestMessage);
@@ -76,6 +76,22 @@ public class AnalysisExecutionProducer {
         catch (JMSException | IOException e)
         {
             throw new RuntimeException("Failed to create WindupExecution stream message!", e);
+        }
+    }
+
+    public void cancelAnalysis(long analysisId) {
+        LOG.debugf("JMS Connection Factory: %s", connectionFactory.toString());
+        try (JMSContext context = connectionFactory.createContext(Session.AUTO_ACKNOWLEDGE)) {
+            final WindupExecution windupExecution = new WindupExecution();
+            windupExecution.setId(analysisId);
+            final String json = WindupExecutionJSONUtil.serializeToString(windupExecution);
+            final TextMessage cancelRequestMessage = context.createTextMessage();
+            cancelRequestMessage.setLongProperty("projectId", analysisId);
+            cancelRequestMessage.setText(json);
+            LOG.infof("Going to send the Windup cancel request %s", json);
+            context.createProducer().send(context.createTopic("executorCancellation"), cancelRequestMessage);
+        } catch (JMSException | IOException e) {
+            throw new RuntimeException("Failed to cancel WindupExecution stream message!", e);
         }
     }
 }
