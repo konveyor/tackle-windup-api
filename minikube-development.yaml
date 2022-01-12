@@ -185,7 +185,7 @@ spec:
       containers:
         - name: windup-executor
 #          image: localhost/mrizzi/windup-web-openshift-messaging-executor:5.2.1-SNAPSHOT
-          image: quay.io/mrizzi/windup-web-openshift-messaging-executor:prototype
+          image: quay.io/mrizzi/windup-web-openshift-messaging-executor:20220112183736CET
 #          resources:
 #            requests:
 #              cpu: 2

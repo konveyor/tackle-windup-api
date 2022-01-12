@@ -40,6 +40,7 @@ import org.jboss.windup.web.addons.websupport.rest.graph.GraphResource;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -63,6 +64,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Path("/windup")
+@Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class WindupResource {
     private static final Logger LOG = Logger.getLogger(WindupResource.class);
@@ -149,6 +151,22 @@ public class WindupResource {
                     .header("Analysis-Id", analysisId)
                     .build();
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return Response.serverError().build();
+    }
+
+    @DELETE
+    @Path("/analysis/{" + PATH_PARAM_ANALYSIS_ID + "}/")
+    public Response deleteAnalysis(@PathParam(PATH_PARAM_ANALYSIS_ID) String analysisId) {
+        try {
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Cancel ongoing analysis\",\"totalWork\":2,\"workCompleted\":0}", analysisId));
+            analysisExecutionProducer.cancelAnalysis(Long.parseLong(analysisId));
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis graph\",\"totalWork\":2,\"workCompleted\":1}", analysisId));
+            graphService.deleteAnalysisGraphFromCentralGraph(analysisId);
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}", analysisId));
+            return Response.noContent().build();
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return Response.serverError().build();
