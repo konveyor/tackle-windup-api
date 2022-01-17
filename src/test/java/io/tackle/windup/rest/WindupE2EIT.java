@@ -220,7 +220,7 @@ public class WindupE2EIT {
         // wait for the analysis to be cancelled
         await()
                 .pollDelay(Duration.ZERO)
-                .pollInterval(10, MILLISECONDS)
+                .pollInterval(1, TimeUnit.SECONDS)
                 .atMost(2, TimeUnit.MINUTES)
                 .until(() -> {
                     System.out.println(String.format("Last received %s", received.get(received.size() - 1)));
