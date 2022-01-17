@@ -221,7 +221,9 @@ public class GraphService {
     }
 
     public void deleteAnalysisGraphFromCentralGraph(String analysisId) {
-        deleteSubGraph(getCentralGraphTraversalSource(), analysisId);
+        GraphTraversalSource centralGraphTraversalSource = getCentralGraphTraversalSource();
+        deleteSubGraph(centralGraphTraversalSource, analysisId);
+        centralGraphTraversalSource.tx().commit();
     }
 
     private void deleteSubGraph(GraphTraversalSource centralGraphTraversalSource, String analysisId) {
@@ -235,7 +237,6 @@ public class GraphService {
         final GraphTraversal<Vertex, Vertex> previousVertexGraph = centralGraphTraversalSource.V();
         previousVertexGraph.has(PATH_PARAM_ANALYSIS_ID, analysisId);
         previousVertexGraph.drop().iterate();
-        centralGraphTraversalSource.tx().commit();
         if (LOG.isDebugEnabled())
             LOG.debugf("After deletion of vertices with Analysis ID %s, central graph has %d vertices and %d edges",
                     analysisId,

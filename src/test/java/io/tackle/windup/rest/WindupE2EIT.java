@@ -61,24 +61,30 @@ public class WindupE2EIT {
                 .extract();
     }
 
-    @Test
-    public void testWindupPostAndDeleteAnalysisEndpoints() {
-        // start the SSE listener immediately
-        final List<String> received = new CopyOnWriteArrayList<>();
-        final SseEventSource source = openSseEventSource(received);
+    private ExtractableResponse<Response> putTestApplicationAnalysis(String analysisId) {
+        final File testApplication = new File("src/test/resources/samples/Windup1x-javaee-example.war");
+        assertTrue(testApplication.exists());
+        return given()
+                .pathParam("analysisId", analysisId)
+                .multiPart("application", testApplication)
+                .multiPart("applicationFileName","bar.ear")
+                .multiPart("targets","eap7")
+                .when()
+                .put(String.format("%s/%s/analysis/{analysisId}", URL, PATH))
+                .then()
+                .statusCode(201)
+                .extract();
+    }
 
-        // trigger the analysis
-        final Headers headers = postSampleApplicationAnalysis().headers();
-        final String location = headers.getValue("Location");
-        assertNotNull(location);
-        final String issuesLocation = headers.getValue("Issues-Location");
-        assertNotNull(issuesLocation);
-        final String analysisId = headers.getValue("Analysis-Id");
-        assertNotNull(analysisId);
-        assertTrue(issuesLocation.contains(analysisId));
-        assertTrue(location.endsWith(analysisId));
+    private void waitForSampleApplicationAnalysisToFinish(String issuesLocation) {
+        waitForApplicationAnalysisToFinish(issuesLocation, 92);
+    }
 
-        // wait for the analysis to finish
+    private void waitForTestApplicationAnalysisToFinish(String issuesLocation) {
+        waitForApplicationAnalysisToFinish(issuesLocation, 15);
+    }
+
+    private void waitForApplicationAnalysisToFinish(String issuesLocation, int numberIssues) {
         await()
                 .pollInterval(1, TimeUnit.SECONDS)
                 .atMost(5, TimeUnit.MINUTES)
@@ -92,15 +98,59 @@ public class WindupE2EIT {
                         .extract()
                         .path("size()")
                         .toString()
-                        .equals("92")
+                        .equals(Integer.toString(numberIssues))
                 );
+
+    }
+
+    private void checkCreateApplicationAnalysisResponseHeaders(Headers headers) {
+        final String location = headers.getValue("Location");
+        assertNotNull(location);
+        final String issuesLocation = headers.getValue("Issues-Location");
+        assertNotNull(issuesLocation);
+        final String analysisId = headers.getValue("Analysis-Id");
+        assertNotNull(analysisId);
+        assertTrue(issuesLocation.contains(analysisId));
+        assertTrue(location.endsWith(analysisId));
+    }
+
+    private void checkWindupLastEventReceived(List<String> eventsReceived, int windupTotalWorkExpected, String analysisId) {
+        // check the "COMPLETED" event from the windup-executor pod has been sent
+        assertEquals(1,
+                eventsReceived.stream()
+                        .filter(s ->
+                                s.contains(
+                                        String.format("\"totalWork\":%d,\"workCompleted\":%d,\"currentTask\":\"PostFinalizePhase - DeleteWorkDirsAtTheEndRuleProvider - DeleteWorkDirsAtTheEndRuleProvider_2\"",
+                                        windupTotalWorkExpected,
+                                        windupTotalWorkExpected + 1)
+                                )
+                        )
+                        .filter(s -> s.startsWith(String.format("{\"id\":%s,", analysisId)))
+                        .count()
+        );
+    }
+
+    @Test
+    public void testWindupPostAndDeleteAnalysisEndpoints() {
+        // start the SSE listener immediately
+        final List<String> received = new CopyOnWriteArrayList<>();
+        final SseEventSource source = openSseEventSource(received);
+
+        // trigger the analysis
+        final Headers headers = postSampleApplicationAnalysis().headers();
+        checkCreateApplicationAnalysisResponseHeaders(headers);
+        final String location = headers.getValue("Location");
+        final String issuesLocation = headers.getValue("Issues-Location");
+        final String analysisId = headers.getValue("Analysis-Id");
+
+        // wait for the analysis to finish
+        waitForSampleApplicationAnalysisToFinish(issuesLocation);
 
         // close the SSE endpoint connection 
         source.close();
         // and check some "milestone" events have been sent even if the events have not all fixed value in fields
         // so searching for some patterns will let the assertions do the validation
-        // check the "COMPLETED" event from the windup-executor pod has been sent
-        assertEquals(1, received.stream().filter(s -> s.contains("\"totalWork\":1618,\"workCompleted\":1619,\"currentTask\":\"PostFinalizePhase - DeleteWorkDirsAtTheEndRuleProvider - DeleteWorkDirsAtTheEndRuleProvider_2\"")).count());
+        checkWindupLastEventReceived(received, 1620, analysisId);
         // check (at least) a merging event has been sent
         assertTrue(received.stream().anyMatch(event -> event.contains(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\"", analysisId))));
         // check the merge finished event has been sent
@@ -138,7 +188,7 @@ public class WindupE2EIT {
     }
 
     @Test
-    public void testWindupPostAndCancelAnalysisEndpoints() {
+    public void testWindupPostAndCancelAndPutAnalysisEndpoints() {
         // start the SSE listener immediately
         final List<String> received = new CopyOnWriteArrayList<>();
         final SseEventSource source = openSseEventSource(received);
@@ -146,7 +196,9 @@ public class WindupE2EIT {
         // trigger the analysis
         final Headers headers = postSampleApplicationAnalysis().headers();
         final String location = headers.getValue("Location");
-        assertNotNull(location);
+        final String analysisId = headers.getValue("Analysis-Id");
+        final String issuesLocation = headers.getValue("Issues-Location");
+        checkCreateApplicationAnalysisResponseHeaders(headers);
 
         // wait some time (receiving at least 10 status updates) before cancelling the execution
         await()
@@ -170,10 +222,97 @@ public class WindupE2EIT {
                 .atMost(30, TimeUnit.SECONDS)
                 .until(() -> received.get(received.size() - 1).contains("\"state\":\"CANCELLED\""));
 
+        // check the last delete endpoint's event has been sent
+        assertTrue(received.stream().anyMatch(event -> event.endsWith("\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}")));
+
+        // now we can overwrite the previous analysis
+        final Headers putHeaders = putTestApplicationAnalysis(analysisId).headers();
+        // check the location is exactly the same as the one provided in the previous POST response
+        assertEquals(location, putHeaders.getValue("Location"));
+        checkCreateApplicationAnalysisResponseHeaders(putHeaders);
+
+        // wait for the analysis to finish (still using the previous issuesLocation from the POST call)
+        waitForTestApplicationAnalysisToFinish(issuesLocation);
+
+        // check the endpoint for retrieving all the issues provides a different response than the one tested above
+        given()
+                .queryParam("analysisId", analysisId)
+                .accept(ContentType.JSON)
+                .contentType(ContentType.JSON)
+                .when()
+                .get(String.format("%s/%s/issue", URL, PATH))
+                .then()
+                .statusCode(200)
+                .body("size()", is(15));
+
+        // close the SSE endpoint connection
+        source.close();
+    }
+
+    @Test
+    public void testWindupPostAndPutAnalysisEndpoints() {
+        // start the SSE listener immediately
+        final List<String> eventsReceived = new CopyOnWriteArrayList<>();
+        final SseEventSource source = openSseEventSource(eventsReceived);
+
+        // trigger the analysis
+        final Headers postHeaders = postSampleApplicationAnalysis().headers();
+        checkCreateApplicationAnalysisResponseHeaders(postHeaders);
+        final String analysisId = postHeaders.getValue("Analysis-Id");
+        final String issuesLocation = postHeaders.getValue("Issues-Location");
+        final String location = postHeaders.getValue("Location");
+
+        // wait for the analysis to finish
+        waitForSampleApplicationAnalysisToFinish(issuesLocation);
+
+        // check the endpoint for retrieving all the issues is working with the analysis ID as query param
+        given()
+                .queryParam("analysisId", analysisId)
+                .accept(ContentType.JSON)
+                .contentType(ContentType.JSON)
+                .when()
+                .get(String.format("%s/%s/issue", URL, PATH))
+                .then()
+                .statusCode(200)
+                .body("size()", is(92));
+
+        // and check some "milestone" events have been sent even if the events have not all fixed value in fields
+        // so searching for some patterns will let the assertions do the validation
+        checkWindupLastEventReceived(eventsReceived, 1620, analysisId);
+        // check (at least) a merging event has been sent
+        assertTrue(eventsReceived.stream().anyMatch(event -> event.contains(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\"", analysisId))));
+        // check the merge finished event has been sent
+        assertTrue(eventsReceived.contains(String.format("{\"id\":%s,\"state\":\"MERGED\",\"currentTask\":\"Merged into central graph\",\"totalWork\":1,\"workCompleted\":1}", analysisId)));
+
+        // now we can overwrite the previous analysis
+        final Headers putHeaders = putTestApplicationAnalysis(analysisId).headers();
+        // check the location is exactly the same as the one provided in the previous POST response
+        assertEquals(location, putHeaders.getValue("Location"));
+        checkCreateApplicationAnalysisResponseHeaders(putHeaders);
+
+        // wait for the analysis to finish (still using the previous issuesLocation from the POST call)
+        waitForTestApplicationAnalysisToFinish(issuesLocation);
+
+        // check the endpoint for retrieving all the issues provides a different response than the one tested above
+        given()
+                .queryParam("analysisId", analysisId)
+                .accept(ContentType.JSON)
+                .contentType(ContentType.JSON)
+                .when()
+                .get(String.format("%s/%s/issue", URL, PATH))
+                .then()
+                .statusCode(200)
+                .body("size()", is(15));
+
         // close the SSE endpoint connection
         source.close();
 
-        // check the last delete endpoint's event has been sent
-        assertTrue(received.stream().anyMatch(event -> event.endsWith("\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}")));
+        checkWindupLastEventReceived(eventsReceived, 1408, analysisId);
+        // check there are now 2 events of this type due to having invoked the PUT endpoint
+        assertEquals(2,
+                eventsReceived.stream()
+                        .filter(s -> s.contains(String.format("{\"id\":%s,\"state\":\"MERGED\",\"currentTask\":\"Merged into central graph\",\"totalWork\":1,\"workCompleted\":1}", analysisId)))
+                        .count()
+        );
     }
 }
