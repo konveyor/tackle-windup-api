@@ -220,7 +220,10 @@ public class WindupE2EIT {
                 .pollDelay(Duration.ZERO)
                 .pollInterval(10, MILLISECONDS)
                 .atMost(2, TimeUnit.MINUTES)
-                .until(() -> received.get(received.size() - 1).contains("\"state\":\"CANCELLED\""));
+                .until(() -> {
+                    System.out.println(String.format("Last received %s", received.get(received.size() - 1)));
+                    return received.get(received.size() - 1).contains("\"state\":\"CANCELLED\"");
+                });
 
         // check the last delete endpoint's event has been sent
         assertTrue(received.stream().anyMatch(event -> event.endsWith("\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}")));
