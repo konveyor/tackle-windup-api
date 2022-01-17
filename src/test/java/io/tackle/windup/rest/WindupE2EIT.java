@@ -57,6 +57,7 @@ public class WindupE2EIT {
                 .when()
                 .post(String.format("%s/%s/analysis/", URL, PATH))
                 .then()
+                .log().all()
                 .statusCode(201)
                 .extract();
     }
@@ -72,6 +73,7 @@ public class WindupE2EIT {
                 .when()
                 .put(String.format("%s/%s/analysis/{analysisId}", URL, PATH))
                 .then()
+                .log().all()
                 .statusCode(201)
                 .extract();
     }
