@@ -219,7 +219,7 @@ public class WindupE2EIT {
         await()
                 .pollDelay(Duration.ZERO)
                 .pollInterval(10, MILLISECONDS)
-                .atMost(30, TimeUnit.SECONDS)
+                .atMost(1, TimeUnit.MINUTES)
                 .until(() -> received.get(received.size() - 1).contains("\"state\":\"CANCELLED\""));
 
         // check the last delete endpoint's event has been sent
