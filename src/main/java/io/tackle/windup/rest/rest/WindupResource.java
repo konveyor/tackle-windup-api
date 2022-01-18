@@ -8,7 +8,6 @@ import com.syncleus.ferma.typeresolvers.PolymorphicTypeResolver;
 import io.tackle.windup.rest.graph.AnnotationFrameFactory;
 import io.tackle.windup.rest.graph.GraphService;
 import io.tackle.windup.rest.jms.AnalysisExecutionProducer;
-import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -20,8 +19,6 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.janusgraph.core.JanusGraph;
-import org.janusgraph.core.JanusGraphFactory;
-import org.janusgraph.util.system.ConfigurationUtil;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
 import org.jboss.windup.graph.GraphTypeManager;
@@ -43,6 +40,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -128,29 +126,21 @@ public class WindupResource {
             // TODO: make this ID working when multi instances are deployed
             //  (and current time allows for conflicts)
             long analysisId = System.currentTimeMillis();
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Storing application\",\"totalWork\":2,\"workCompleted\":0}", analysisId));
-            File application = Paths.get(sharedFolderPath, analysisRequest.applicationFileName).toFile();
-            Files.createDirectories(java.nio.file.Path.of(application.getParentFile().getAbsolutePath()));
-            Files.copy(
-                    analysisRequest.applicationFile,
-                    application.toPath(),
-                    StandardCopyOption.REPLACE_EXISTING);
-            LOG.debugf("Copied input file to %s\n", application.getAbsolutePath());
-            IOUtils.closeQuietly(analysisRequest.applicationFile);
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Triggering the analysis\",\"totalWork\":2,\"workCompleted\":1}", analysisId));
-            analysisExecutionProducer.triggerAnalysis(analysisId, application.getAbsolutePath(),
-                    Paths.get(sharedFolderPath).toAbsolutePath().toString(),
-                    analysisRequest.sources,
-                    analysisRequest.targets,
-                    analysisRequest.packages,
-                    analysisRequest.sourceMode);
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Analysis waiting to be executed\",\"totalWork\":2,\"workCompleted\":2}", analysisId));
-            return Response
-                    .created(URI.create(String.format("/windup/analysis/%d", analysisId)))
-                    .header("Issues-Location", URI.create(String.format("/windup/analysis/%d/issues", analysisId)).toString())
-                    .header("Analysis-Id", analysisId)
-                    .build();
-        } catch (IOException e) {
+            return runAnalysis(analysisId, analysisRequest);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return Response.serverError().build();
+    }
+
+    @PUT
+    @Path("/analysis/{" + PATH_PARAM_ANALYSIS_ID + "}/")
+    @Consumes({ MediaType.MULTIPART_FORM_DATA })
+    public Response overwriteAnalysis(@PathParam(PATH_PARAM_ANALYSIS_ID) String analysisId,
+                                      @MultipartForm AnalysisMultipartBody analysisRequest) {
+        try {
+            return runAnalysis(Long.parseLong(analysisId), analysisRequest);
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return Response.serverError().build();
@@ -202,11 +192,35 @@ public class WindupResource {
         return handlers;
     }
 
-    private JanusGraph openJanusGraph() throws ConfigurationException {
-        LOG.debugf("Opening Janus Graph properties file %s", graphProperties);
-        return JanusGraphFactory.open(ConfigurationUtil.loadPropertiesConfig(graphProperties));
+    private Response runAnalysis(long analysisId, AnalysisMultipartBody analysisRequest) {
+        try {
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Storing application\",\"totalWork\":2,\"workCompleted\":0}", analysisId));
+            File application = Paths.get(sharedFolderPath, analysisRequest.applicationFileName).toFile();
+            Files.createDirectories(java.nio.file.Path.of(application.getParentFile().getAbsolutePath()));
+            Files.copy(
+                    analysisRequest.applicationFile,
+                    application.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING);
+            LOG.debugf("Copied input file to %s\n", application.getAbsolutePath());
+            IOUtils.closeQuietly(analysisRequest.applicationFile);
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Triggering the analysis\",\"totalWork\":2,\"workCompleted\":1}", analysisId));
+            analysisExecutionProducer.triggerAnalysis(analysisId, application.getAbsolutePath(),
+                    Paths.get(sharedFolderPath).toAbsolutePath().toString(),
+                    analysisRequest.sources,
+                    analysisRequest.targets,
+                    analysisRequest.packages,
+                    analysisRequest.sourceMode);
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Analysis waiting to be executed\",\"totalWork\":2,\"workCompleted\":2}", analysisId));
+            return Response
+                    .created(URI.create(String.format("/windup/analysis/%d", analysisId)))
+                    .header("Issues-Location", URI.create(String.format("/windup/analysis/%d/issues", analysisId)).toString())
+                    .header("Analysis-Id", analysisId)
+                    .build();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return Response.serverError().build();
     }
-
 
     /**
      * Heavily inspired from https://github.com/windup/windup-web/blob/8f81bc56d34756ff3a9261edfccbe9b44af40fc2/addons/web-support/impl/src/main/java/org/jboss/windup/web/addons/websupport/rest/graph/AbstractGraphResource.java#L203
