@@ -153,9 +153,7 @@ public class WindupResource {
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Cancel ongoing analysis\",\"totalWork\":2,\"workCompleted\":0}", analysisId));
             analysisExecutionProducer.cancelAnalysis(Long.parseLong(analysisId));
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis graph\",\"totalWork\":2,\"workCompleted\":1}", analysisId));
-            LOG.warn("Going to delete the analysis graph");
             graphService.deleteAnalysisGraphFromCentralGraph(analysisId);
-            LOG.warn("Deleted the analysis graph");
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}", analysisId));
             return Response.noContent().build();
         } catch (Exception e) {

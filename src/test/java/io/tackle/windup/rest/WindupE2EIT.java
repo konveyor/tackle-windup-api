@@ -19,7 +19,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -57,7 +56,6 @@ public class WindupE2EIT {
                 .when()
                 .post(String.format("%s/%s/analysis/", URL, PATH))
                 .then()
-                .log().all()
                 .statusCode(201)
                 .extract();
     }
@@ -73,7 +71,6 @@ public class WindupE2EIT {
                 .when()
                 .put(String.format("%s/%s/analysis/{analysisId}", URL, PATH))
                 .then()
-                .log().all()
                 .statusCode(201)
                 .extract();
     }
@@ -222,10 +219,7 @@ public class WindupE2EIT {
                 .pollDelay(Duration.ZERO)
                 .pollInterval(1, TimeUnit.SECONDS)
                 .atMost(2, TimeUnit.MINUTES)
-                .until(() -> {
-                    System.out.println(String.format("Last received %s", received.get(received.size() - 1)));
-                    return received.get(received.size() - 1).contains("\"state\":\"CANCELLED\"");
-                });
+                .until(() -> received.get(received.size() - 1).contains("\"state\":\"CANCELLED\""));
 
         // check the last delete endpoint's event has been sent
         assertTrue(received.stream().anyMatch(event -> event.endsWith("\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}")));
