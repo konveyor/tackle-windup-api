@@ -21,7 +21,7 @@
     <clean-plugin.version>3.1.0</clean-plugin.version>
     <janusgraph.version>0.6.0</janusgraph.version>
     <windup.version>5.2.1.Final</windup.version>
-    <tinkerpop.version>3.5.1</tinkerpop.version>
+    <tinkerpop.version>3.5.2</tinkerpop.version>
     <windup.web.scm.connection>scm:git:https://github.com/windup/windup-api.git</windup.web.scm.connection>
     <windup.web.developer.connection>scm:git:git@github.com:windup/windup-api.git</windup.web.developer.connection>
     <windup.web.scm.url>https://github.com/windup/windup-api</windup.web.scm.url>
