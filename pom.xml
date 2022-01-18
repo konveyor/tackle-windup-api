@@ -323,6 +323,7 @@
                 <maven.home>${maven.home}</maven.home>
               </systemPropertyVariables>
               <trimStackTrace>false</trimStackTrace>
+              <rerunFailingTestsCount>2</rerunFailingTestsCount>
             </configuration>
           </execution>
         </executions>
