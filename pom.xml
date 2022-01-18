@@ -16,7 +16,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>2.3.0.Final</quarkus.platform.version>
+    <quarkus.platform.version>2.6.2.Final</quarkus.platform.version>
     <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
     <clean-plugin.version>3.1.0</clean-plugin.version>
     <janusgraph.version>0.6.0</janusgraph.version>
@@ -25,6 +25,7 @@
     <windup.web.scm.connection>scm:git:https://github.com/windup/windup-api.git</windup.web.scm.connection>
     <windup.web.developer.connection>scm:git:git@github.com:windup/windup-api.git</windup.web.developer.connection>
     <windup.web.scm.url>https://github.com/windup/windup-api</windup.web.scm.url>
+    <quarkus.artemis.version>1.0.3</quarkus.artemis.version>
   </properties>
   <scm>
     <tag>main</tag>
@@ -67,6 +68,13 @@
         <groupId>${quarkus.platform.group-id}</groupId>
         <artifactId>${quarkus.platform.artifact-id}</artifactId>
         <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.artemis</groupId>
+        <artifactId>quarkus-artemis-bom</artifactId>
+        <version>${quarkus.artemis.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -187,7 +195,7 @@
       <version>${windup.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.quarkus</groupId>
+      <groupId>io.quarkiverse.artemis</groupId>
       <artifactId>quarkus-artemis-jms</artifactId>
     </dependency>
     <dependency>
