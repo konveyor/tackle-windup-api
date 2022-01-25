@@ -7,11 +7,12 @@ import com.syncleus.ferma.framefactories.annotation.MethodHandler;
 import com.syncleus.ferma.typeresolvers.PolymorphicTypeResolver;
 import io.tackle.windup.rest.graph.AnnotationFrameFactory;
 import io.tackle.windup.rest.graph.GraphService;
+import io.tackle.windup.rest.graph.model.AnalysisModel;
+import io.tackle.windup.rest.graph.model.WindupExecutionModel;
 import io.tackle.windup.rest.jms.AnalysisExecutionProducer;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -21,7 +22,6 @@ import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.janusgraph.core.JanusGraph;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
-import org.jboss.windup.graph.GraphTypeManager;
 import org.jboss.windup.graph.MapInAdjacentPropertiesHandler;
 import org.jboss.windup.graph.MapInAdjacentVerticesHandler;
 import org.jboss.windup.graph.MapInPropertiesHandler;
@@ -34,6 +34,7 @@ import org.jboss.windup.graph.model.WindupFrame;
 import org.jboss.windup.graph.model.WindupVertexFrame;
 import org.jboss.windup.reporting.model.InlineHintModel;
 import org.jboss.windup.web.addons.websupport.rest.graph.GraphResource;
+import org.jboss.windup.web.services.model.WindupExecution;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -105,8 +106,7 @@ public class WindupResource {
             centralGraph.tx().rollback();
             FramedGraph framedGraph = new DelegatingFramedGraph<>(centralGraph, frameFactory, new PolymorphicTypeResolver(reflections));
             LOG.info("...running the query...");
-            final GraphTraversal<Vertex, Vertex> hints = new GraphTraversalSource(centralGraph).V();
-            hints.has(WindupFrame.TYPE_PROP, GraphTypeManager.getTypeValue(InlineHintModel.class));
+            final GraphTraversal<Vertex, Vertex> hints = graphService.getGraphTraversalByType(InlineHintModel.class);
             if (StringUtils.isNotBlank(analysisId)) hints.has(PATH_PARAM_ANALYSIS_ID, analysisId);
             final List<Vertex> issues = hints.toList();
             LOG.infof("Found %d hints for application ID %s", issues.size(), analysisId);
@@ -126,7 +126,11 @@ public class WindupResource {
             // TODO: make this ID working when multi instances are deployed
             //  (and current time allows for conflicts)
             long analysisId = System.currentTimeMillis();
-            return runAnalysis(analysisId, analysisRequest);
+            AnalysisModel analysisModel = graphService.create(AnalysisModel.class);
+            analysisModel.setAnalysisId(analysisId);
+            analysisModel.setCreated(System.currentTimeMillis());
+            graphService.getCentralGraphTraversalSource().tx().commit();
+            return runAnalysis(analysisModel, analysisRequest);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -139,7 +143,7 @@ public class WindupResource {
     public Response overwriteAnalysis(@PathParam(PATH_PARAM_ANALYSIS_ID) String analysisId,
                                       @MultipartForm AnalysisMultipartBody analysisRequest) {
         try {
-            return runAnalysis(Long.parseLong(analysisId), analysisRequest);
+            return runAnalysis(graphService.findByAnalysisId(Long.parseLong(analysisId)), analysisRequest);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -165,19 +169,12 @@ public class WindupResource {
     @GET
     @Path("/trigger")
     @Operation(summary = "This method is used to trigger the sample configuration form analysis.", hidden = true)
-    public Response trigger() {
-        // TODO see above
-        long analysisId = System.currentTimeMillis();
-        windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Triggering the analysis\",\"totalWork\":1,\"workCompleted\":0}", analysisId));
-        analysisExecutionProducer.triggerAnalysis(analysisId,
-                "samples/jee-example-app-1.0.0.ear", sharedFolderPath,
-                null, "eap7,cloud-readiness,quarkus,rhr", null, null);
-        windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Analysis waiting to be executed\",\"totalWork\":1,\"workCompleted\":1}", analysisId));
-        return Response
-                .created(URI.create(String.format("/windup/analysis/%d", analysisId)))
-                .header("Issues-Location", URI.create(String.format("/windup/analysis/%d/issues", analysisId)))
-                .header("Analysis-Id", analysisId)
-                .build();
+    public Response trigger() throws IOException {
+        AnalysisMultipartBody analysisRequest = new AnalysisMultipartBody();
+        analysisRequest.applicationFile = getClass().getResourceAsStream("/META-INF/resources/samples/jee-example-app-1.0.0.ear");
+        analysisRequest.applicationFileName = "jee-example-app-1.0.0.ear";
+        analysisRequest.targets = "eap7,cloud-readiness,quarkus,rhr";
+        return runAnalysis(analysisRequest);
     }
 
     private Set<MethodHandler> getMethodHandlers() {
@@ -192,9 +189,9 @@ public class WindupResource {
         return handlers;
     }
 
-    private Response runAnalysis(long analysisId, AnalysisMultipartBody analysisRequest) {
+    private Response runAnalysis(AnalysisModel analysisModel, AnalysisMultipartBody analysisRequest) {
         try {
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Storing application\",\"totalWork\":2,\"workCompleted\":0}", analysisId));
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Storing application\",\"totalWork\":2,\"workCompleted\":0}", analysisModel.getAnalysisId()));
             File application = Paths.get(sharedFolderPath, analysisRequest.applicationFileName).toFile();
             Files.createDirectories(java.nio.file.Path.of(application.getParentFile().getAbsolutePath()));
             Files.copy(
@@ -203,18 +200,22 @@ public class WindupResource {
                     StandardCopyOption.REPLACE_EXISTING);
             LOG.debugf("Copied input file to %s\n", application.getAbsolutePath());
             IOUtils.closeQuietly(analysisRequest.applicationFile);
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Triggering the analysis\",\"totalWork\":2,\"workCompleted\":1}", analysisId));
-            analysisExecutionProducer.triggerAnalysis(analysisId, application.getAbsolutePath(),
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Triggering the analysis\",\"totalWork\":2,\"workCompleted\":1}", analysisModel.getAnalysisId()));
+            final WindupExecution windupExecution = analysisExecutionProducer.triggerAnalysis(analysisModel, application.getAbsolutePath(),
                     Paths.get(sharedFolderPath).toAbsolutePath().toString(),
                     analysisRequest.sources,
                     analysisRequest.targets,
                     analysisRequest.packages,
                     analysisRequest.sourceMode);
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Analysis waiting to be executed\",\"totalWork\":2,\"workCompleted\":2}", analysisId));
+            final WindupExecutionModel windupExecutionModel = graphService.createFromWindupExecution(windupExecution);
+            windupExecutionModel.setAnalysis(analysisModel);
+            analysisModel.addWindupExecution(windupExecutionModel);
+            graphService.getCentralGraphTraversalSource().tx().commit();
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Analysis waiting to be executed\",\"totalWork\":2,\"workCompleted\":2}", analysisModel.getAnalysisId()));
             return Response
-                    .created(URI.create(String.format("/windup/analysis/%d", analysisId)))
-                    .header("Issues-Location", URI.create(String.format("/windup/analysis/%d/issues", analysisId)).toString())
-                    .header("Analysis-Id", analysisId)
+                    .created(URI.create(String.format("/windup/analysis/%d", analysisModel.getAnalysisId())))
+                    .header("Issues-Location", URI.create(String.format("/windup/analysis/%d/issues", analysisModel.getAnalysisId())).toString())
+                    .header("Analysis-Id", analysisModel.getAnalysisId())
                     .build();
         } catch (IOException e) {
             e.printStackTrace();
@@ -236,12 +237,12 @@ public class WindupResource {
         List<Map<String, Object>> result = new ArrayList<>();
         for (WindupVertexFrame frame : frames)
         {
-            result.add(convertToMap(/*ctx,*/ frame.getElement(), true));
+            result.add(convertToMap(/*ctx,*/ frame.getElement(), true, depth));
         }
         return result;
     }
 
-    protected Map<String, Object> convertToMap(/*GraphMarshallingContext ctx,*/ Vertex vertex, boolean addEdges)
+    protected Map<String, Object> convertToMap(/*GraphMarshallingContext ctx,*/ Vertex vertex, boolean addEdges, int depth)
     {
         Map<String, Object> result = new HashMap<>();
 
@@ -276,10 +277,10 @@ public class WindupResource {
         }
 
 
-        if (addEdges) {
+        if (addEdges && --depth > 0) {
             Map<String, Object> outVertices = new HashMap<>();
             result.put(GraphResource.VERTICES_OUT, outVertices);
-            addEdges(/*ctx,*/ vertex, Direction.OUT, outVertices);
+            addEdges(/*ctx,*/ vertex, Direction.OUT, outVertices, depth);
         }
 
 /*
@@ -293,7 +294,7 @@ public class WindupResource {
         return result;
     }
 
-    private void addEdges(/*GraphMarshallingContext ctx,*/ Vertex vertex, Direction direction, Map<String, Object> result)
+    private void addEdges(/*GraphMarshallingContext ctx,*/ Vertex vertex, Direction direction, Map<String, Object> result, int depth)
     {
         final Iterator<Edge> edges = vertex.edges(direction);
 
@@ -339,7 +340,7 @@ public class WindupResource {
 
             // Recursion
 //            ctx.remainingDepth--;
-            Map<String, Object> otherVertexMap = convertToMap(/*ctx,*/ otherVertex, false);
+            Map<String, Object> otherVertexMap = convertToMap(/*ctx,*/ otherVertex, true, depth);
 //            ctx.remainingDepth++;
 
             // Add edge properties if any
