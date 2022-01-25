@@ -1,5 +1,6 @@
 package io.tackle.windup.rest.jms;
 
+import io.tackle.windup.rest.graph.model.AnalysisModel;
 import org.apache.commons.lang3.StringUtils;
 import org.jboss.logging.Logger;
 import org.jboss.windup.web.services.json.WindupExecutionJSONUtil;
@@ -31,20 +32,22 @@ import java.util.stream.Stream;
 public class AnalysisExecutionProducer {
 
     private static final Logger LOG = Logger.getLogger(AnalysisExecutionProducer.class);
+    static final String MESSAGE_PROPERTY_PROJECT_ID = "projectId";
+    static final String MESSAGE_PROPERTY_EXECUTION_ID = "executionId";
 
     @Inject
     ConnectionFactory connectionFactory;
 
-    public void triggerAnalysis(long analysisId, String applicationFilePath, String baseOutputPath, String sources, String targets, String packages, Boolean sourceMode) {
+    public WindupExecution triggerAnalysis(AnalysisModel analysisModel, String applicationFilePath, String baseOutputPath, String sources, String targets, String packages, Boolean sourceMode) {
         LOG.debugf("JMS Connection Factory: %s", connectionFactory.toString());
         try (JMSContext context = connectionFactory.createContext(Session.AUTO_ACKNOWLEDGE)) {
             final TextMessage executionRequestMessage = context.createTextMessage();
 
-            executionRequestMessage.setLongProperty("projectId", analysisId);
-            executionRequestMessage.setLongProperty("executionId", analysisId);
+            executionRequestMessage.setLongProperty(MESSAGE_PROPERTY_PROJECT_ID, analysisModel.getAnalysisId());
+            executionRequestMessage.setLongProperty(MESSAGE_PROPERTY_EXECUTION_ID, System.currentTimeMillis());
 
             final AnalysisContext analysisContext = new AnalysisContext();
-            analysisContext.setGenerateStaticReports(false);
+            analysisContext.setGenerateStaticReports(true);
 
             analysisContext.setAdvancedOptions(Stream.of(targets.split(",")).map(targetValue -> new AdvancedOption("target", targetValue.trim())).collect(Collectors.toList()));
             if (StringUtils.isNotBlank(sources)) analysisContext.getAdvancedOptions().addAll(Stream.of(sources.split(",")).map(sourceValue -> new AdvancedOption("source", sourceValue.trim())).collect(Collectors.toList()));
@@ -62,16 +65,17 @@ public class AnalysisExecutionProducer {
             analysisContext.setApplications(Set.of(registeredApplication));
 
             final WindupExecution windupExecution = new WindupExecution();
-            windupExecution.setId(analysisId);
+            windupExecution.setId(executionRequestMessage.getLongProperty(MESSAGE_PROPERTY_PROJECT_ID));
             windupExecution.setAnalysisContext(analysisContext);
             windupExecution.setTimeQueued(new GregorianCalendar());
             windupExecution.setState(ExecutionState.QUEUED);
-            windupExecution.setOutputPath(Path.of(baseOutputPath, Long.toString(analysisId)).toString());
+            windupExecution.setOutputPath(Path.of(baseOutputPath, Long.toString(analysisModel.getAnalysisId())).toString());
 
             final String json = WindupExecutionJSONUtil.serializeToString(windupExecution);
             executionRequestMessage.setText(json);
             LOG.infof("Going to send the Windup execution request %s", json);
             context.createProducer().send(context.createQueue("executorQueue"), executionRequestMessage);
+            return windupExecution;
         }
         catch (JMSException | IOException e)
         {
@@ -86,7 +90,7 @@ public class AnalysisExecutionProducer {
             windupExecution.setId(analysisId);
             final String json = WindupExecutionJSONUtil.serializeToString(windupExecution);
             final TextMessage cancelRequestMessage = context.createTextMessage();
-            cancelRequestMessage.setLongProperty("projectId", analysisId);
+            cancelRequestMessage.setLongProperty(MESSAGE_PROPERTY_PROJECT_ID, analysisId);
             cancelRequestMessage.setText(json);
             LOG.infof("Going to send the Windup cancel request %s", json);
             context.createProducer().send(context.createTopic("executorCancellation"), cancelRequestMessage);
