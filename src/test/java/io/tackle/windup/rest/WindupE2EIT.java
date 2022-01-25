@@ -149,7 +149,7 @@ public class WindupE2EIT {
         source.close();
         // and check some "milestone" events have been sent even if the events have not all fixed value in fields
         // so searching for some patterns will let the assertions do the validation
-        checkWindupLastEventReceived(received, 1620, analysisId);
+        checkWindupLastEventReceived(received, 1625, analysisId);
         // check (at least) a merging event has been sent
         assertTrue(received.stream().anyMatch(event -> event.contains(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\"", analysisId))));
         // check the merge finished event has been sent
@@ -277,7 +277,7 @@ public class WindupE2EIT {
 
         // and check some "milestone" events have been sent even if the events have not all fixed value in fields
         // so searching for some patterns will let the assertions do the validation
-        checkWindupLastEventReceived(eventsReceived, 1620, analysisId);
+        checkWindupLastEventReceived(eventsReceived, 1625, analysisId);
         // check (at least) a merging event has been sent
         assertTrue(eventsReceived.stream().anyMatch(event -> event.contains(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\"", analysisId))));
         // check the merge finished event has been sent
@@ -306,7 +306,7 @@ public class WindupE2EIT {
         // close the SSE endpoint connection
         source.close();
 
-        checkWindupLastEventReceived(eventsReceived, 1408, analysisId);
+        checkWindupLastEventReceived(eventsReceived, 1413, analysisId);
         // check there are now 2 events of this type due to having invoked the PUT endpoint
         assertEquals(2,
                 eventsReceived.stream()
