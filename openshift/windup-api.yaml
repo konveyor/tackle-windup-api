@@ -122,7 +122,7 @@ objects:
         spec:
           containers:
             - name: artemis
-              image: quay.io/artemiscloud/activemq-artemis-broker:0.1.4
+              image: quay.io/artemiscloud/activemq-artemis-broker:0.1.6
               ports:
                 - containerPort: 61616
                   protocol: TCP
