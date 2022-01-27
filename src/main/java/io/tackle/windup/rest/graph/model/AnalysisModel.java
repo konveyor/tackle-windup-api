@@ -14,12 +14,13 @@ public interface AnalysisModel extends WindupVertexFrame {
 
     String TYPE = "AnalysisModel";
     /**
-     * not using "analysisId" to avoid clashing with {@link io.tackle.windup.rest.rest.WindupResource#PATH_PARAM_ANALYSIS_ID WindupResource.PATH_PARAM_ANALYSIS_ID}
+     * not using "analysisId" to avoid clashing with {@link io.tackle.windup.rest.resources.WindupResource#PATH_PARAM_ANALYSIS_ID WindupResource.PATH_PARAM_ANALYSIS_ID}
      */
-    String ANALYSIS_ID = "analysisModelId";
-    String VERSION = "version";
-    String CREATED = "created";
-    String OWNS = "owns";
+    String ANALYSIS_ID = TYPE + "-Id";
+    String STATUS = TYPE + "-Status";
+    String LAST_UPDATE = TYPE + "-LastUpdate";
+    String CREATED = TYPE + "-Created";
+    String OWNS = TYPE + "-Owns";
 
     @Property(ANALYSIS_ID)
     Long getAnalysisId();
@@ -27,11 +28,17 @@ public interface AnalysisModel extends WindupVertexFrame {
     @Property(ANALYSIS_ID)
     void setAnalysisId(final Long analysisId);
 
-    @Property(VERSION)
-    int getVersion();
+    @Property(STATUS)
+    Status getStatus();
 
-    @Property(VERSION)
-    void setVersion(final int version);
+    @Property(STATUS)
+    void setStatus(final Status status);
+
+    @Property(LAST_UPDATE)
+    String getLastUpdate();
+
+    @Property(LAST_UPDATE)
+    void setLastUpdate(final String lastUpdate);
 
     /**
      * Contains creation date
@@ -56,4 +63,13 @@ public interface AnalysisModel extends WindupVertexFrame {
      */
     @Adjacency(label = OWNS, direction = Direction.OUT)
     void addWindupExecution(WindupExecutionModel windupExecutionModel);
+
+    enum Status {
+        INIT,
+        STARTED,
+        MERGING,
+        CANCELLED,
+        COMPLETED,
+        DELETED
+    }
 }
