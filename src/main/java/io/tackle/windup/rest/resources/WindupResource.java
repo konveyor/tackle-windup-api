@@ -1,17 +1,20 @@
-package io.tackle.windup.rest.rest;
+package io.tackle.windup.rest.resources;
 
 import com.syncleus.ferma.DelegatingFramedGraph;
 import com.syncleus.ferma.FramedGraph;
 import com.syncleus.ferma.ReflectionCache;
 import com.syncleus.ferma.framefactories.annotation.MethodHandler;
 import com.syncleus.ferma.typeresolvers.PolymorphicTypeResolver;
+import io.tackle.windup.rest.dto.AnalysisStatusDTO;
 import io.tackle.windup.rest.graph.AnnotationFrameFactory;
 import io.tackle.windup.rest.graph.GraphService;
 import io.tackle.windup.rest.graph.model.AnalysisModel;
+import io.tackle.windup.rest.graph.model.AnalysisModel.Status;
 import io.tackle.windup.rest.graph.model.WindupExecutionModel;
-import io.tackle.windup.rest.jms.AnalysisExecutionProducer;
+import io.tackle.windup.rest.jms.WindupExecutionProducer;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -62,6 +65,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.tackle.windup.rest.graph.model.WindupExecutionModel.TIME_QUEUED;
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.out;
+
 @Path("/windup")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
@@ -84,7 +90,7 @@ public class WindupResource {
     GraphService graphService;
 
     @Inject
-    AnalysisExecutionProducer analysisExecutionProducer;
+    WindupExecutionProducer windupExecutionProducer;
 
     @Inject
     WindupBroadcasterResource windupBroadcasterResource;
@@ -106,7 +112,7 @@ public class WindupResource {
             centralGraph.tx().rollback();
             FramedGraph framedGraph = new DelegatingFramedGraph<>(centralGraph, frameFactory, new PolymorphicTypeResolver(reflections));
             LOG.info("...running the query...");
-            final GraphTraversal<Vertex, Vertex> hints = graphService.getGraphTraversalByType(InlineHintModel.class);
+            final GraphTraversal<Vertex, Vertex> hints = graphService.getCentralGraphTraversalByType(InlineHintModel.class);
             if (StringUtils.isNotBlank(analysisId)) hints.has(PATH_PARAM_ANALYSIS_ID, analysisId);
             final List<Vertex> issues = hints.toList();
             LOG.infof("Found %d hints for application ID %s", issues.size(), analysisId);
@@ -155,10 +161,13 @@ public class WindupResource {
     public Response deleteAnalysis(@PathParam(PATH_PARAM_ANALYSIS_ID) String analysisId) {
         try {
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Cancel ongoing analysis\",\"totalWork\":2,\"workCompleted\":0}", analysisId));
-            analysisExecutionProducer.cancelAnalysis(Long.parseLong(analysisId));
+            windupExecutionProducer.cancelAnalysis(Long.parseLong(analysisId));
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis graph\",\"totalWork\":2,\"workCompleted\":1}", analysisId));
             graphService.deleteAnalysisGraphFromCentralGraph(analysisId);
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}", analysisId));
+            AnalysisModel analysisModel = graphService.findByAnalysisId(Long.parseLong(analysisId));
+            analysisModel.setStatus(analysisModel.getStatus() == Status.COMPLETED ? Status.DELETED : Status.CANCELLED);
+            graphService.getCentralGraphTraversalSource().tx().commit();
             return Response.noContent().build();
         } catch (Exception e) {
             e.printStackTrace();
@@ -167,9 +176,63 @@ public class WindupResource {
     }
 
     @GET
+    @Path("/analysis/")
+    public Response retrieveAnalyses() {
+        try {
+            final JanusGraph centralGraph = graphService.getCentralJanusGraph();
+            // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
+            centralGraph.tx().rollback();
+            LOG.info("...running the retrieveAnalyses \"query\"...");
+            final List<Vertex> analyses = graphService.getCentralGraphTraversalByType(AnalysisModel.class)
+                    .order()
+                    .by(out(AnalysisModel.OWNS).values(TIME_QUEUED), Order.desc)
+                    .toList();
+            LOG.infof("Found %d Analysis", analyses.size());
+            final List<Map<String, Object>> result = frameIterableToResult(1L, new FramedVertexIterable<>(graphService.getCentralFramedGraph(), analyses, AnalysisModel.class), 4);
+            LOG.debugf("Framed %d Analysis", result.size());
+            return Response.ok(result).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return Response.serverError().build();
+    }
+
+    @GET
+    @Path("/analysis/{" + PATH_PARAM_ANALYSIS_ID + "}/")
+    public Response retrieveAnalysis(@PathParam(PATH_PARAM_ANALYSIS_ID) String analysisId) {
+        try {
+            final JanusGraph centralGraph = graphService.getCentralJanusGraph();
+            // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
+            centralGraph.tx().rollback();
+            LOG.info("...running the retrieveAnalysis \"query\"...");
+            final AnalysisModel analysisModel = graphService.findByAnalysisId(Long.parseLong(analysisId));
+            return Response.ok(convertToMap(analysisModel.getElement(), true, 2)).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    @GET
+    @Path("/analysis/{" + PATH_PARAM_ANALYSIS_ID + "}/status/")
+    public Response retrieveAnalysisStatus(@PathParam(PATH_PARAM_ANALYSIS_ID) String analysisId) {
+        try {
+            final JanusGraph centralGraph = graphService.getCentralJanusGraph();
+            // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
+            centralGraph.tx().rollback();
+            LOG.info("...running the retrieveAnalysisStatus \"query\"...");
+            final AnalysisModel analysisModel = graphService.findByAnalysisId(Long.parseLong(analysisId));
+            return Response.ok(AnalysisStatusDTO.withAnalysisModel(analysisModel)).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    @GET
     @Path("/trigger")
     @Operation(summary = "This method is used to trigger the sample configuration form analysis.", hidden = true)
-    public Response trigger() throws IOException {
+    public Response trigger() {
         AnalysisMultipartBody analysisRequest = new AnalysisMultipartBody();
         analysisRequest.applicationFile = getClass().getResourceAsStream("/META-INF/resources/samples/jee-example-app-1.0.0.ear");
         analysisRequest.applicationFileName = "jee-example-app-1.0.0.ear";
@@ -192,6 +255,8 @@ public class WindupResource {
     private Response runAnalysis(AnalysisModel analysisModel, AnalysisMultipartBody analysisRequest) {
         try {
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Storing application\",\"totalWork\":2,\"workCompleted\":0}", analysisModel.getAnalysisId()));
+            analysisModel.setStatus(Status.INIT);
+            graphService.getCentralGraphTraversalSource().tx().commit();
             File application = Paths.get(sharedFolderPath, analysisRequest.applicationFileName).toFile();
             Files.createDirectories(java.nio.file.Path.of(application.getParentFile().getAbsolutePath()));
             Files.copy(
@@ -201,7 +266,7 @@ public class WindupResource {
             LOG.debugf("Copied input file to %s\n", application.getAbsolutePath());
             IOUtils.closeQuietly(analysisRequest.applicationFile);
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Triggering the analysis\",\"totalWork\":2,\"workCompleted\":1}", analysisModel.getAnalysisId()));
-            final WindupExecution windupExecution = analysisExecutionProducer.triggerAnalysis(analysisModel, application.getAbsolutePath(),
+            final WindupExecution windupExecution = windupExecutionProducer.triggerAnalysis(analysisModel, application.getAbsolutePath(),
                     Paths.get(sharedFolderPath).toAbsolutePath().toString(),
                     analysisRequest.sources,
                     analysisRequest.targets,

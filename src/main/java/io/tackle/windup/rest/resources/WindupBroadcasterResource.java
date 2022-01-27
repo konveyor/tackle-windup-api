@@ -1,4 +1,4 @@
-package io.tackle.windup.rest.rest;
+package io.tackle.windup.rest.resources;
 
 import javax.inject.Singleton;
 import javax.ws.rs.GET;

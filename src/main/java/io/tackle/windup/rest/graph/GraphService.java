@@ -8,7 +8,7 @@ import com.syncleus.ferma.typeresolvers.PolymorphicTypeResolver;
 import io.quarkus.runtime.Startup;
 import io.tackle.windup.rest.graph.model.AnalysisModel;
 import io.tackle.windup.rest.graph.model.WindupExecutionModel;
-import io.tackle.windup.rest.rest.WindupBroadcasterResource;
+import io.tackle.windup.rest.resources.WindupBroadcasterResource;
 import org.apache.commons.configuration2.ConfigurationUtils;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
@@ -47,6 +47,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.ws.rs.NotFoundException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -57,7 +58,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import static io.tackle.windup.rest.rest.WindupResource.PATH_PARAM_ANALYSIS_ID;
+import static io.tackle.windup.rest.resources.WindupResource.PATH_PARAM_ANALYSIS_ID;
 
 @Startup
 @ApplicationScoped
@@ -227,7 +228,7 @@ public class GraphService {
             // now that the WindupConfigurationModel has been added to the graph
             // it can be set for the WindupExecutionModel
             WindupConfigurationModel windupConfigurationModel = framedGraph.frameElement(
-                    getGraphTraversalByType(WindupConfigurationModel.class)
+                    getCentralGraphTraversalByType(WindupConfigurationModel.class)
                             .has(PATH_PARAM_ANALYSIS_ID, analysisId)
                             .next(),
                     WindupConfigurationModel.class);
@@ -295,23 +296,24 @@ public class GraphService {
     }
 
     public AnalysisModel findByAnalysisId(long analysisId) {
-        return framedGraph.frameElement(
-                getGraphTraversalByType(AnalysisModel.class)
-                        .has(AnalysisModel.ANALYSIS_ID, analysisId)
-                        .next(),
-                AnalysisModel.class);
+        final GraphTraversal<Vertex, Vertex> graphTraversal = getCentralGraphTraversalByType(AnalysisModel.class).has(AnalysisModel.ANALYSIS_ID, analysisId);
+        if (graphTraversal.hasNext()) {
+            return framedGraph.frameElement(graphTraversal.next(), AnalysisModel.class);
+        } else {
+            throw new NotFoundException();
+        }
     }
 
     public WindupExecutionModel findByWindupExecutionId(long windupExecutionId) {
         return framedGraph.frameElement(
-                getGraphTraversalByType(WindupExecutionModel.class)
+                getCentralGraphTraversalByType(WindupExecutionModel.class)
                         .has(WindupExecutionModel.WINDUP_EXECUTION_ID, windupExecutionId)
                         .next(),
                 WindupExecutionModel.class);
     }
 
     public Long getTotalStoryPoints(String analysisId) {
-        return getGraphTraversalByType(EffortReportModel.class)
+        return getCentralGraphTraversalByType(EffortReportModel.class)
                 .has(PATH_PARAM_ANALYSIS_ID, analysisId)
                 .map(vertexTraverser -> vertexTraverser.get().property(EffortReportModel.EFFORT).value())
                 .sum()
@@ -320,7 +322,7 @@ public class GraphService {
     }
 
     public Map<Object, Long> getNumberIssuesPerCategory(String analysisId) {
-        return getGraphTraversalByType(EffortReportModel.class)
+        return getCentralGraphTraversalByType(EffortReportModel.class)
                 .has(PATH_PARAM_ANALYSIS_ID, analysisId)
                 .out(EffortReportModel.ISSUE_CATEGORY)
                 .values(IssueCategoryModel.NAME)
@@ -328,7 +330,7 @@ public class GraphService {
                 .next();
     }
 
-    public <MODEL extends WindupVertexFrame> GraphTraversal<Vertex, Vertex> getGraphTraversalByType(Class<MODEL> model) {
+    public <MODEL extends WindupVertexFrame> GraphTraversal<Vertex, Vertex> getCentralGraphTraversalByType(Class<MODEL> model) {
         return getCentralGraphTraversalSource().V().has(WindupFrame.TYPE_PROP, GraphTypeManager.getTypeValue(model));
     }
 

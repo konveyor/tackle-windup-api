@@ -29,9 +29,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @ApplicationScoped
-public class AnalysisExecutionProducer {
+public class WindupExecutionProducer {
 
-    private static final Logger LOG = Logger.getLogger(AnalysisExecutionProducer.class);
+    private static final Logger LOG = Logger.getLogger(WindupExecutionProducer.class);
     static final String MESSAGE_PROPERTY_PROJECT_ID = "projectId";
     static final String MESSAGE_PROPERTY_EXECUTION_ID = "executionId";
 

@@ -1,4 +1,4 @@
-package io.tackle.windup.rest.rest;
+package io.tackle.windup.rest.resources;
 
 import org.jboss.resteasy.annotations.providers.multipart.PartType;
 

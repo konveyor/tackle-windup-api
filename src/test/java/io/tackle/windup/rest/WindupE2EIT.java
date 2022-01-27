@@ -4,6 +4,8 @@ import io.restassured.http.ContentType;
 import io.restassured.http.Headers;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
+import io.tackle.windup.rest.graph.model.AnalysisModel;
 import org.awaitility.Durations;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class WindupE2EIT {
 
     private static final String PATH = "windup";
+    private static final String HEADER_ANALYSIS_ID = "Analysis-Id";
+    private static final String HEADER_LOCATION = "Location";
+    private static final String HEADER_ISSUES_LOCATION = "Issues-Location";
     private static String URL;
 
     @BeforeAll
@@ -103,11 +108,11 @@ public class WindupE2EIT {
     }
 
     private void checkCreateApplicationAnalysisResponseHeaders(Headers headers) {
-        final String location = headers.getValue("Location");
+        final String location = headers.getValue(HEADER_LOCATION);
         assertNotNull(location);
-        final String issuesLocation = headers.getValue("Issues-Location");
+        final String issuesLocation = headers.getValue(HEADER_ISSUES_LOCATION);
         assertNotNull(issuesLocation);
-        final String analysisId = headers.getValue("Analysis-Id");
+        final String analysisId = headers.getValue(HEADER_ANALYSIS_ID);
         assertNotNull(analysisId);
         assertTrue(issuesLocation.contains(analysisId));
         assertTrue(location.endsWith(analysisId));
@@ -129,6 +134,35 @@ public class WindupE2EIT {
         );
     }
 
+    private void checkAnalysisStatus(String analysisId, AnalysisModel.Status status) {
+        getAnalysisStatus(analysisId).body("status", is(status.toString()));
+    }
+
+    private void waitForAnalysisStatusToBe(String analysisId, AnalysisModel.Status statusExpected) {
+        await()
+            .pollInterval(1, TimeUnit.SECONDS)
+            .atMost(5, TimeUnit.MINUTES)
+            .until(
+                () -> statusExpected.toString()
+                        .equals(getAnalysisStatus(analysisId)
+                                .extract()
+                                .path("status")
+                                .toString()
+                        )
+            );
+    }
+
+    private ValidatableResponse getAnalysisStatus(String analysisId) {
+        return given()
+                .pathParam("analysisId", analysisId)
+                .accept(ContentType.JSON)
+                .contentType(ContentType.JSON)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/status/", URL, PATH))
+                .then()
+                .statusCode(200);
+    }
+
     @Test
     public void testWindupPostAndDeleteAnalysisEndpoints() {
         // start the SSE listener immediately
@@ -138,9 +172,9 @@ public class WindupE2EIT {
         // trigger the analysis
         final Headers headers = postSampleApplicationAnalysis().headers();
         checkCreateApplicationAnalysisResponseHeaders(headers);
-        final String location = headers.getValue("Location");
-        final String issuesLocation = headers.getValue("Issues-Location");
-        final String analysisId = headers.getValue("Analysis-Id");
+        final String location = headers.getValue(HEADER_LOCATION);
+        final String issuesLocation = headers.getValue(HEADER_ISSUES_LOCATION);
+        final String analysisId = headers.getValue(HEADER_ANALYSIS_ID);
 
         // wait for the analysis to finish
         waitForSampleApplicationAnalysisToFinish(issuesLocation);
@@ -154,6 +188,8 @@ public class WindupE2EIT {
         assertTrue(received.stream().anyMatch(event -> event.contains(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\"", analysisId))));
         // check the merge finished event has been sent
         assertTrue(received.contains(String.format("{\"id\":%s,\"state\":\"MERGED\",\"currentTask\":\"Merged into central graph\",\"totalWork\":1,\"workCompleted\":1}", analysisId)));
+        // check analysis status is completed
+        checkAnalysisStatus(analysisId, AnalysisModel.Status.COMPLETED);
 
         // check the endpoint for retrieving all the issues is working with the analysis ID as query param
         given()
@@ -184,6 +220,9 @@ public class WindupE2EIT {
                 .then()
                 .statusCode(200)
                 .body("size()", is(0));
+
+        // check check analysis status is deleted
+        checkAnalysisStatus(analysisId, AnalysisModel.Status.DELETED);
     }
 
     @Test
@@ -194,9 +233,9 @@ public class WindupE2EIT {
 
         // trigger the analysis
         final Headers headers = postSampleApplicationAnalysis().headers();
-        final String location = headers.getValue("Location");
-        final String analysisId = headers.getValue("Analysis-Id");
-        final String issuesLocation = headers.getValue("Issues-Location");
+        final String location = headers.getValue(HEADER_LOCATION);
+        final String analysisId = headers.getValue(HEADER_ANALYSIS_ID);
+        final String issuesLocation = headers.getValue(HEADER_ISSUES_LOCATION);
         checkCreateApplicationAnalysisResponseHeaders(headers);
 
         // wait some time (receiving at least 10 status updates) before cancelling the execution
@@ -223,11 +262,13 @@ public class WindupE2EIT {
 
         // check the last delete endpoint's event has been sent
         assertTrue(received.stream().anyMatch(event -> event.endsWith("\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}")));
+        // check analysis status is cancelled
+        checkAnalysisStatus(analysisId, AnalysisModel.Status.CANCELLED);
 
         // now we can overwrite the previous analysis
         final Headers putHeaders = putTestApplicationAnalysis(analysisId).headers();
         // check the location is exactly the same as the one provided in the previous POST response
-        assertEquals(location, putHeaders.getValue("Location"));
+        assertEquals(location, putHeaders.getValue(HEADER_LOCATION));
         checkCreateApplicationAnalysisResponseHeaders(putHeaders);
 
         // wait for the analysis to finish (still using the previous issuesLocation from the POST call)
@@ -246,6 +287,9 @@ public class WindupE2EIT {
 
         // close the SSE endpoint connection
         source.close();
+
+        // check analysis status is completed
+        checkAnalysisStatus(analysisId, AnalysisModel.Status.COMPLETED);
     }
 
     @Test
@@ -257,9 +301,9 @@ public class WindupE2EIT {
         // trigger the analysis
         final Headers postHeaders = postSampleApplicationAnalysis().headers();
         checkCreateApplicationAnalysisResponseHeaders(postHeaders);
-        final String analysisId = postHeaders.getValue("Analysis-Id");
-        final String issuesLocation = postHeaders.getValue("Issues-Location");
-        final String location = postHeaders.getValue("Location");
+        final String analysisId = postHeaders.getValue(HEADER_ANALYSIS_ID);
+        final String issuesLocation = postHeaders.getValue(HEADER_ISSUES_LOCATION);
+        final String location = postHeaders.getValue(HEADER_LOCATION);
 
         // wait for the analysis to finish
         waitForSampleApplicationAnalysisToFinish(issuesLocation);
@@ -282,11 +326,13 @@ public class WindupE2EIT {
         assertTrue(eventsReceived.stream().anyMatch(event -> event.contains(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\"", analysisId))));
         // check the merge finished event has been sent
         assertTrue(eventsReceived.contains(String.format("{\"id\":%s,\"state\":\"MERGED\",\"currentTask\":\"Merged into central graph\",\"totalWork\":1,\"workCompleted\":1}", analysisId)));
+        // check analysis status is completed
+        checkAnalysisStatus(analysisId, AnalysisModel.Status.COMPLETED);
 
         // now we can overwrite the previous analysis
         final Headers putHeaders = putTestApplicationAnalysis(analysisId).headers();
         // check the location is exactly the same as the one provided in the previous POST response
-        assertEquals(location, putHeaders.getValue("Location"));
+        assertEquals(location, putHeaders.getValue(HEADER_LOCATION));
         checkCreateApplicationAnalysisResponseHeaders(putHeaders);
 
         // wait for the analysis to finish (still using the previous issuesLocation from the POST call)
@@ -313,5 +359,32 @@ public class WindupE2EIT {
                         .filter(s -> s.contains(String.format("{\"id\":%s,\"state\":\"MERGED\",\"currentTask\":\"Merged into central graph\",\"totalWork\":1,\"workCompleted\":1}", analysisId)))
                         .count()
         );
+
+        // check analysis status is completed
+        checkAnalysisStatus(analysisId, AnalysisModel.Status.COMPLETED);
     }
+
+    @Test
+    public void testAnalysisStatusEndpointNotFound() {
+        given()
+                .pathParam("analysisId", "0")
+                .accept(ContentType.JSON)
+                .contentType(ContentType.JSON)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/status/", URL, PATH))
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testAnalysisStatusEndpoint() {
+        // trigger an analysis and then wait for each status to happen
+        final Headers postHeaders = postSampleApplicationAnalysis().headers();
+        final String analysisId = postHeaders.getValue(HEADER_ANALYSIS_ID);
+        waitForAnalysisStatusToBe(analysisId, AnalysisModel.Status.INIT);
+        waitForAnalysisStatusToBe(analysisId, AnalysisModel.Status.STARTED);
+        waitForAnalysisStatusToBe(analysisId, AnalysisModel.Status.MERGING);
+        waitForAnalysisStatusToBe(analysisId, AnalysisModel.Status.COMPLETED);
+    }
+
 }
