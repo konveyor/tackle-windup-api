@@ -7,6 +7,7 @@ import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
 import io.tackle.windup.rest.graph.model.AnalysisModel;
 import org.awaitility.Durations;
+import org.jboss.windup.web.services.model.ExecutionState;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,9 @@ import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -34,6 +37,8 @@ public class WindupE2EIT {
     private static final String HEADER_ANALYSIS_ID = "Analysis-Id";
     private static final String HEADER_LOCATION = "Location";
     private static final String HEADER_ISSUES_LOCATION = "Issues-Location";
+    private static final int SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED = 1625; // jee-example-app-1.0.0.ear
+    private static final int TEST_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED = 1413; // Windup1x-javaee-example.war
     private static String URL;
 
     @BeforeAll
@@ -163,6 +168,17 @@ public class WindupE2EIT {
                 .statusCode(200);
     }
 
+    private ValidatableResponse getAnalysisExecutions(String analysisId) {
+        return given()
+                .pathParam("analysisId", analysisId)
+                .accept(ContentType.JSON)
+                .contentType(ContentType.JSON)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/execution/", URL, PATH))
+                .then()
+                .statusCode(200);
+    }
+
     @Test
     public void testWindupPostAndDeleteAnalysisEndpoints() {
         // start the SSE listener immediately
@@ -183,13 +199,26 @@ public class WindupE2EIT {
         source.close();
         // and check some "milestone" events have been sent even if the events have not all fixed value in fields
         // so searching for some patterns will let the assertions do the validation
-        checkWindupLastEventReceived(received, 1625, analysisId);
+        checkWindupLastEventReceived(received, SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED, analysisId);
         // check (at least) a merging event has been sent
         assertTrue(received.stream().anyMatch(event -> event.contains(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\"", analysisId))));
         // check the merge finished event has been sent
         assertTrue(received.contains(String.format("{\"id\":%s,\"state\":\"MERGED\",\"currentTask\":\"Merged into central graph\",\"totalWork\":1,\"workCompleted\":1}", analysisId)));
         // check analysis status is completed
         checkAnalysisStatus(analysisId, AnalysisModel.Status.COMPLETED);
+        // check there's one execution with historic statistics
+        getAnalysisExecutions(analysisId)
+                .body("size()", is(1),
+                        "[0].totalStoryPoint", is(96),
+                        "[0].numberIssuesPerCategory.'Migration Optional'", is(1),
+                        "[0].numberIssuesPerCategory.'Migration Mandatory'", is(53),
+                        "[0].numberIssuesPerCategory.'Cloud Mandatory'", is(5),
+                        "[0].numberIssuesPerCategory.'Information'", is(6),
+                        "[0].numberIssuesPerCategory.'Migration Potential'", is(38),
+                        "[0].state", is(ExecutionState.COMPLETED.toString()),
+                        "[0].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED),
+                        "[0].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].fileName", is("foo.ear"),
+                        "[0].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices.technologyID", hasItems("rhr", "quarkus", "eap", "cloud-readiness"));
 
         // check the endpoint for retrieving all the issues is working with the analysis ID as query param
         given()
@@ -221,8 +250,21 @@ public class WindupE2EIT {
                 .statusCode(200)
                 .body("size()", is(0));
 
-        // check check analysis status is deleted
+        // check analysis status is deleted
         checkAnalysisStatus(analysisId, AnalysisModel.Status.DELETED);
+        // check there's still one execution with historic statistics
+        getAnalysisExecutions(analysisId)
+                .body("size()", is(1),
+                        "[0].totalStoryPoint", is(96),
+                        "[0].numberIssuesPerCategory.'Migration Optional'", is(1),
+                        "[0].numberIssuesPerCategory.'Migration Mandatory'", is(53),
+                        "[0].numberIssuesPerCategory.'Cloud Mandatory'", is(5),
+                        "[0].numberIssuesPerCategory.'Information'", is(6),
+                        "[0].numberIssuesPerCategory.'Migration Potential'", is(38),
+                        "[0].state", is(ExecutionState.COMPLETED.toString()),
+                        "[0].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED)/*,
+                        "[0].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].fileName", is("foo.ear"),
+                        "[0].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices.technologyID", hasItems("rhr", "quarkus", "eap", "cloud-readiness")*/);
     }
 
     @Test
@@ -263,7 +305,14 @@ public class WindupE2EIT {
         // check the last delete endpoint's event has been sent
         assertTrue(received.stream().anyMatch(event -> event.endsWith("\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}")));
         // check analysis status is cancelled
-        checkAnalysisStatus(analysisId, AnalysisModel.Status.CANCELLED);
+        waitForAnalysisStatusToBe(analysisId, AnalysisModel.Status.CANCELLED);
+        // check there's still one execution with historic statistics
+        getAnalysisExecutions(analysisId)
+                .body("size()", is(1),
+                        "[0].totalStoryPoint", nullValue(),
+                        "[0].numberIssuesPerCategory.'Migration Optional'", nullValue(),
+                        "[0].state", is(ExecutionState.CANCELLED.toString()),
+                        "[0].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED));
 
         // now we can overwrite the previous analysis
         final Headers putHeaders = putTestApplicationAnalysis(analysisId).headers();
@@ -290,6 +339,23 @@ public class WindupE2EIT {
 
         // check analysis status is completed
         checkAnalysisStatus(analysisId, AnalysisModel.Status.COMPLETED);
+        // check there two executions with historic statistics and
+        // the former execution became the 2nd element (index [1]) in the response
+        getAnalysisExecutions(analysisId)
+                .body("size()", is(2),
+                        "[1].totalStoryPoint", nullValue(),
+                        "[1].numberIssuesPerCategory.'Migration Optional'", nullValue(),
+                        "[1].state", is(ExecutionState.CANCELLED.toString()),
+                        "[1].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED),
+                        // let's validate also the new 1st element
+                        "[0].totalStoryPoint", is(4),
+                        "[0].numberIssuesPerCategory.'Migration Potential'", is(15),
+                        "[0].numberIssuesPerCategory.'Migration Mandatory'", is(1),
+                        "[0].numberIssuesPerCategory.'Information'", is(6),
+                        "[0].state", is(ExecutionState.COMPLETED.toString()),
+                        "[0].workTotal", is(TEST_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED),
+                        "[0].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].applicationName", is("bar.ear"),
+                        "[0].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices[0].technologyID", is("eap"));
     }
 
     @Test
@@ -321,7 +387,7 @@ public class WindupE2EIT {
 
         // and check some "milestone" events have been sent even if the events have not all fixed value in fields
         // so searching for some patterns will let the assertions do the validation
-        checkWindupLastEventReceived(eventsReceived, 1625, analysisId);
+        checkWindupLastEventReceived(eventsReceived, SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED, analysisId);
         // check (at least) a merging event has been sent
         assertTrue(eventsReceived.stream().anyMatch(event -> event.contains(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\"", analysisId))));
         // check the merge finished event has been sent
@@ -352,7 +418,7 @@ public class WindupE2EIT {
         // close the SSE endpoint connection
         source.close();
 
-        checkWindupLastEventReceived(eventsReceived, 1413, analysisId);
+        checkWindupLastEventReceived(eventsReceived, TEST_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED, analysisId);
         // check there are now 2 events of this type due to having invoked the PUT endpoint
         assertEquals(2,
                 eventsReceived.stream()
@@ -362,6 +428,25 @@ public class WindupE2EIT {
 
         // check analysis status is completed
         checkAnalysisStatus(analysisId, AnalysisModel.Status.COMPLETED);
+        // check there's just one execution with statics
+        getAnalysisExecutions(analysisId)
+                .body("size()", is(2),
+                        "[0].totalStoryPoint", is(4),
+                        "[0].numberIssuesPerCategory.'Migration Potential'", is(15),
+                        "[0].numberIssuesPerCategory.'Migration Mandatory'", is(1),
+                        "[0].numberIssuesPerCategory.'Information'", is(6),
+                        "[0].state", is(ExecutionState.COMPLETED.toString()),
+                        "[0].workTotal", is(TEST_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED),
+                        "[0].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].applicationName", is("bar.ear"),
+                        "[0].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices[0].technologyID", is("eap"),
+                        "[1].totalStoryPoint", is(96),
+                        "[1].numberIssuesPerCategory.'Migration Optional'", is(1),
+                        "[1].numberIssuesPerCategory.'Migration Mandatory'", is(53),
+                        "[1].numberIssuesPerCategory.'Cloud Mandatory'", is(5),
+                        "[1].numberIssuesPerCategory.'Information'", is(6),
+                        "[1].numberIssuesPerCategory.'Migration Potential'", is(38),
+                        "[1].state", is(ExecutionState.COMPLETED.toString()),
+                        "[1].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED));
     }
 
     @Test

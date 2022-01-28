@@ -319,20 +319,6 @@ public class GraphService {
                 .out(AnalysisModel.OWNS)
                 .order().by(WindupExecutionModel.TIME_QUEUED, Order.desc)
                 .toList();
-/*
-        return getCentralGraphTraversalByType(WindupExecutionModel.class)
-                .as("label")
-                .in(AnalysisModel.OWNS)
-                .has(AnalysisModel.ANALYSIS_ID, analysisId)
-                .order().by(WindupExecutionModel.TIME_QUEUED, Order.desc)
-                .select("label")
-                .toList()
-                .stream()
-                .peek(System.out::println)
-                .filter(Vertex.class::isInstance)
-                .map(Vertex.class::cast)
-                .collect(Collectors.toList());
-*/
     }
 
     public Long getTotalStoryPoints(String analysisId) {

@@ -61,13 +61,13 @@ public class WindupExecutionStatusConsumer implements Runnable {
                 LOG.debugf("Last status update from executor = %s", lastUpdate);
                 WindupExecution windupExecution = WindupExecutionJSONUtil.readJSON(lastUpdate);
                 windupBroadcasterResource.broadcastMessage(lastUpdate);
-                WindupExecutionModel windupExecutionModel = graphService.findByWindupExecutionId(windupExecution.getId());
+                WindupExecutionModel windupExecutionModel = graphService.findWindupExecutionModelByWindupExecutionId(windupExecution.getId());
                 windupExecutionModel.setState(windupExecution.getState());
                 windupExecutionModel.setLastModified(windupExecution.getLastModified().getTimeInMillis());
                 windupExecutionModel.setCurrentTask(windupExecution.getCurrentTask());
                 windupExecutionModel.setWorkCompleted(windupExecution.getWorkCompleted());
                 windupExecutionModel.setWorkTotal(windupExecution.getTotalWork());
-                AnalysisModel analysisModel = graphService.findByAnalysisId(windupExecution.getId());
+                AnalysisModel analysisModel = graphService.findAnalysisModelByAnalysisId(windupExecution.getId());
                 analysisModel.setLastUpdate(lastUpdate);
                 switch (windupExecution.getState()) {
                     case COMPLETED:
