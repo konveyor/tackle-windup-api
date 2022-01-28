@@ -12,6 +12,7 @@ import io.tackle.windup.rest.resources.WindupBroadcasterResource;
 import org.apache.commons.configuration2.ConfigurationUtils;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -55,6 +56,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -232,7 +234,7 @@ public class GraphService {
                             .has(PATH_PARAM_ANALYSIS_ID, analysisId)
                             .next(),
                     WindupConfigurationModel.class);
-            final WindupExecutionModel windupExecutionModel = findByWindupExecutionId(Long.parseLong(windupExecutionId));
+            final WindupExecutionModel windupExecutionModel = findWindupExecutionModelByWindupExecutionId(Long.parseLong(windupExecutionId));
             windupExecutionModel.setConfiguration(windupConfigurationModel);
             LOG.debugf("Attached WindupConfigurationModel %s", windupConfigurationModel);
             final Long totalStoryPoint = getTotalStoryPoints(analysisId);
@@ -267,8 +269,7 @@ public class GraphService {
                     centralGraphTraversalSource.V().count().next(),
                     centralGraphTraversalSource.E().count().next());
         final GraphTraversal<Vertex, Vertex> previousVertexGraph = centralGraphTraversalSource.V();
-        previousVertexGraph.has(PATH_PARAM_ANALYSIS_ID, analysisId);
-        previousVertexGraph.drop().iterate();
+        previousVertexGraph.has(PATH_PARAM_ANALYSIS_ID, analysisId).drop().iterate();
         if (LOG.isDebugEnabled())
             LOG.debugf("After deletion of vertices with Analysis ID %s, central graph has %d vertices and %d edges",
                     analysisId,
@@ -295,7 +296,7 @@ public class GraphService {
         return windupExecutionModel;
     }
 
-    public AnalysisModel findByAnalysisId(long analysisId) {
+    public AnalysisModel findAnalysisModelByAnalysisId(long analysisId) {
         final GraphTraversal<Vertex, Vertex> graphTraversal = getCentralGraphTraversalByType(AnalysisModel.class).has(AnalysisModel.ANALYSIS_ID, analysisId);
         if (graphTraversal.hasNext()) {
             return framedGraph.frameElement(graphTraversal.next(), AnalysisModel.class);
@@ -304,12 +305,20 @@ public class GraphService {
         }
     }
 
-    public WindupExecutionModel findByWindupExecutionId(long windupExecutionId) {
+    public WindupExecutionModel findWindupExecutionModelByWindupExecutionId(long windupExecutionId) {
         return framedGraph.frameElement(
                 getCentralGraphTraversalByType(WindupExecutionModel.class)
                         .has(WindupExecutionModel.WINDUP_EXECUTION_ID, windupExecutionId)
                         .next(),
                 WindupExecutionModel.class);
+    }
+
+    public List<Vertex> findWindupExecutionModelByAnalysisId(long analysisId) {
+        return getCentralGraphTraversalByType(AnalysisModel.class)
+                .has(AnalysisModel.ANALYSIS_ID, analysisId)
+                .out(AnalysisModel.OWNS)
+                .order().by(WindupExecutionModel.TIME_QUEUED, Order.desc)
+                .toList();
     }
 
     public Long getTotalStoryPoints(String analysisId) {
