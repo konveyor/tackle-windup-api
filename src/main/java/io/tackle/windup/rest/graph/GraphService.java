@@ -268,6 +268,24 @@ public class GraphService {
                     analysisId,
                     centralGraphTraversalSource.V().count().next(),
                     centralGraphTraversalSource.E().count().next());
+        // Drop the PATH_PARAM_ANALYSIS_ID property from the WindupConfigurationModel vertex (and its connected vertices)
+        // so that we can keep these models connected in the graph with the proper WindupExecutionModel vertex
+        getCentralGraphTraversalByType(WindupConfigurationModel.class)
+                .has(PATH_PARAM_ANALYSIS_ID, analysisId)
+                .out(WindupConfigurationModel.INPUT_PATH,
+                    WindupConfigurationModel.USER_RULES_PATH,
+                    WindupConfigurationModel.USER_LABELS_PATH,
+                    WindupConfigurationModel.USER_IGNORE_PATH,
+                    WindupConfigurationModel.USER_RULES_PATH,
+                    WindupConfigurationModel.OUTPUT_PATH,
+                    WindupConfigurationModel.SOURCE_TECHNOLOGY,
+                    WindupConfigurationModel.TARGET_TECHNOLOGY)
+                .properties(PATH_PARAM_ANALYSIS_ID)
+                .drop().iterate();
+        getCentralGraphTraversalByType(WindupConfigurationModel.class)
+                .has(PATH_PARAM_ANALYSIS_ID, analysisId)
+                .properties(PATH_PARAM_ANALYSIS_ID)
+                .drop().iterate();
         final GraphTraversal<Vertex, Vertex> previousVertexGraph = centralGraphTraversalSource.V();
         previousVertexGraph.has(PATH_PARAM_ANALYSIS_ID, analysisId).drop().iterate();
         if (LOG.isDebugEnabled())

@@ -262,9 +262,9 @@ public class WindupE2EIT {
                         "[0].numberIssuesPerCategory.'Information'", is(6),
                         "[0].numberIssuesPerCategory.'Migration Potential'", is(38),
                         "[0].state", is(ExecutionState.COMPLETED.toString()),
-                        "[0].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED)/*,
+                        "[0].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED),
                         "[0].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].fileName", is("foo.ear"),
-                        "[0].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices.technologyID", hasItems("rhr", "quarkus", "eap", "cloud-readiness")*/);
+                        "[0].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices.technologyID", hasItems("rhr", "quarkus", "eap", "cloud-readiness"));
     }
 
     @Test
