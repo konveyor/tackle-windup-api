@@ -149,7 +149,7 @@ public class WindupResource {
     public Response overwriteAnalysis(@PathParam(PATH_PARAM_ANALYSIS_ID) String analysisId,
                                       @MultipartForm AnalysisMultipartBody analysisRequest) {
         try {
-            return runAnalysis(graphService.findByAnalysisId(Long.parseLong(analysisId)), analysisRequest);
+            return runAnalysis(graphService.findAnalysisModelByAnalysisId(Long.parseLong(analysisId)), analysisRequest);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -165,7 +165,7 @@ public class WindupResource {
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis graph\",\"totalWork\":2,\"workCompleted\":1}", analysisId));
             graphService.deleteAnalysisGraphFromCentralGraph(analysisId);
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}", analysisId));
-            AnalysisModel analysisModel = graphService.findByAnalysisId(Long.parseLong(analysisId));
+            AnalysisModel analysisModel = graphService.findAnalysisModelByAnalysisId(Long.parseLong(analysisId));
             analysisModel.setStatus(analysisModel.getStatus() == Status.COMPLETED ? Status.DELETED : Status.CANCELLED);
             graphService.getCentralGraphTraversalSource().tx().commit();
             return Response.noContent().build();
@@ -205,7 +205,7 @@ public class WindupResource {
             // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
             centralGraph.tx().rollback();
             LOG.info("...running the retrieveAnalysis \"query\"...");
-            final AnalysisModel analysisModel = graphService.findByAnalysisId(Long.parseLong(analysisId));
+            final AnalysisModel analysisModel = graphService.findAnalysisModelByAnalysisId(Long.parseLong(analysisId));
             return Response.ok(convertToMap(analysisModel.getElement(), true, 2)).build();
         } catch (Exception e) {
             e.printStackTrace();
@@ -221,8 +221,24 @@ public class WindupResource {
             // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
             centralGraph.tx().rollback();
             LOG.info("...running the retrieveAnalysisStatus \"query\"...");
-            final AnalysisModel analysisModel = graphService.findByAnalysisId(Long.parseLong(analysisId));
+            final AnalysisModel analysisModel = graphService.findAnalysisModelByAnalysisId(Long.parseLong(analysisId));
             return Response.ok(AnalysisStatusDTO.withAnalysisModel(analysisModel)).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    @GET
+    @Path("/analysis/{" + PATH_PARAM_ANALYSIS_ID + "}/execution/")
+    public Response retrieveAnalysisExecutions(@PathParam(PATH_PARAM_ANALYSIS_ID) String analysisId) {
+        try {
+            final JanusGraph centralGraph = graphService.getCentralJanusGraph();
+            // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
+            centralGraph.tx().rollback();
+            LOG.info("...running the retrieveAnalysisExecutions \"query\"...");
+            final List<Vertex> windupExecutionModels = graphService.findWindupExecutionModelByAnalysisId(Long.parseLong(analysisId));
+            return Response.ok(frameIterableToResult(1L, new FramedVertexIterable<>(graphService.getCentralFramedGraph(), windupExecutionModels, WindupExecutionModel.class), 3)).build();
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
