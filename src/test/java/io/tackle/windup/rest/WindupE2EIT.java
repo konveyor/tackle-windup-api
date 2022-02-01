@@ -375,7 +375,7 @@ public class WindupE2EIT {
                 "[1].numberIssuesPerCategory.'Migration Optional'", nullValue(),
                 "[1].state", is(ExecutionState.CANCELLED.toString()),
                 "[1].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED)));
-        checks.add(List.of(additionalKeyMatcherPairsForTestApplicationExecution(0)));
+        checks.addAll(List.of(additionalKeyMatcherPairsForTestApplicationExecution(0)));
         getAnalysisExecutions(analysisId).body("size()", is(2), checks.toArray());
     }
 
