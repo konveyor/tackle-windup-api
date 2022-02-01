@@ -22,12 +22,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2.4.0
 
-      - name: Setup Minikube-Kubernetes
+      - name: Dump runner context
+        run: echo '${{ toJSON(runner) }}'
+
+      - name: Setup Minikube-Kubernetes if GitHub-hosted runner
         uses: manusa/actions-setup-minikube@v2.4.3
+        if: ${{ runner.name != 'windup-api-runner' }}
         with:
           minikube version: v1.23.2
           kubernetes version: ${{ matrix.kubernetes_version }}
           github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start minikube if self-hosted runner
+        if: ${{ runner.name == 'windup-api-runner' }}
+        run: minikube start -p ${{ matrix.kubernetes_version }} --vm-driver=docker --kubernetes-version ${{ matrix.kubernetes_version }} --cpus='8' --memory='12g'
 
       - name: Setup Java 11
         uses: actions/setup-java@v2
@@ -58,3 +66,7 @@ jobs:
       - name: E2E test Tackle Windup API
         run: |
          ./mvnw verify -Dwindup.url=$(minikube service -n ${{env.kubernetes_namespace}} api --url)
+
+      - name: Stop minikube if self-hosted runner
+        if: ${{ runner.name == 'windup-api-runner' }}
+        run: minikube stop -p ${{ matrix.kubernetes_version }}
