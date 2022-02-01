@@ -9,61 +9,61 @@ on:
     - cron: '0 8 * * *'
 
 jobs:
-  E2E:
-    name: minikube
-    runs-on: ubuntu-latest
-    if: ${{ runner.name != 'windup-api-runner' }}
-    strategy:
-      matrix:
-        kubernetes_version: [v1.20.14, v1.21.8, v1.22.5, v1.23.1]
-      fail-fast: false
-    env:
-      kubernetes_namespace: windup
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2.4.0
-
-      - name: Setup Minikube-Kubernetes if GitHub-hosted runner
-        uses: manusa/actions-setup-minikube@v2.4.3
-        with:
-          minikube version: v1.23.2
-          kubernetes version: ${{ matrix.kubernetes_version }}
-          github token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Java 11
-        uses: actions/setup-java@v2
-        with:
-          java-version: '11'
-          distribution: 'adopt'
-          java-package: jdk
-          cache: 'maven'
-
-      - name: Build Tackle Windup API container image
-        run: |
-          ./mvnw package -Pcontainer \
-              -Dquarkus.container-image.tag=test \
-              -Dquarkus.container-image.push=false \
-              -Dquarkus.container-image.group=$USER \
-              -Dquarkus.container-image.registry=localhost
-          minikube image load localhost/$USER/windup-api:test
-
-      - name: Deploy Tackle Windup API (following README instructions)
-        run: |
-         kubectl create namespace ${{env.kubernetes_namespace}}
-         sed "s\localhost/{user}/windup-api:0.0.1-SNAPSHOT\localhost/$USER/windup-api:test\g" minikube-development.yaml | kubectl apply -n ${{env.kubernetes_namespace}} -f -
-
-      - name: Wait for Tackle Windup API (following README instructions)
-        run: |
-         kubectl wait -n ${{env.kubernetes_namespace}} --for condition=available deployment windup-api --timeout=-1s
-
-      - name: E2E test Tackle Windup API
-        run: |
-         ./mvnw verify -Dwindup.url=$(minikube service -n ${{env.kubernetes_namespace}} api --url)
+#  E2E:
+#    name: minikube
+#    runs-on: ubuntu-latest
+#    if: ${{ runner.name != 'windup-api-runner' }}
+#    strategy:
+#      matrix:
+#        kubernetes_version: [v1.20.14, v1.21.8, v1.22.5, v1.23.1]
+#      fail-fast: false
+#    env:
+#      kubernetes_namespace: windup
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v2.4.0
+#
+#      - name: Setup Minikube-Kubernetes
+#        uses: manusa/actions-setup-minikube@v2.4.3
+#        with:
+#          minikube version: v1.23.2
+#          kubernetes version: ${{ matrix.kubernetes_version }}
+#          github token: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Setup Java 11
+#        uses: actions/setup-java@v2
+#        with:
+#          java-version: '11'
+#          distribution: 'adopt'
+#          java-package: jdk
+#          cache: 'maven'
+#
+#      - name: Build Tackle Windup API container image
+#        run: |
+#          ./mvnw package -Pcontainer \
+#              -Dquarkus.container-image.tag=test \
+#              -Dquarkus.container-image.push=false \
+#              -Dquarkus.container-image.group=$USER \
+#              -Dquarkus.container-image.registry=localhost
+#          minikube image load localhost/$USER/windup-api:test
+#
+#      - name: Deploy Tackle Windup API (following README instructions)
+#        run: |
+#         kubectl create namespace ${{env.kubernetes_namespace}}
+#         sed "s\localhost/{user}/windup-api:0.0.1-SNAPSHOT\localhost/$USER/windup-api:test\g" minikube-development.yaml | kubectl apply -n ${{env.kubernetes_namespace}} -f -
+#
+#      - name: Wait for Tackle Windup API (following README instructions)
+#        run: |
+#         kubectl wait -n ${{env.kubernetes_namespace}} --for condition=available deployment windup-api --timeout=-1s
+#
+#      - name: E2E test Tackle Windup API
+#        run: |
+#         ./mvnw verify -Dwindup.url=$(minikube service -n ${{env.kubernetes_namespace}} api --url)
 
   E2E-self-hosted:
     name: minikube
     runs-on: self-hosted
-    if: ${{ runner.name == 'windup-api-runner' }}
+#    if: ${{ runner.name == 'windup-api-runner' }}
     strategy:
       matrix:
         kubernetes_version: [v1.20.14, v1.21.8, v1.22.5, v1.23.1]
