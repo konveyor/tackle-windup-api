@@ -11,10 +11,11 @@ on:
 jobs:
   E2E:
     name: minikube
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         kubernetes_version: [v1.20.14, v1.21.8, v1.22.5, v1.23.1]
+        os: [ubuntu-latest, windows-latest, macos-10.15]
       fail-fast: false
     env:
       kubernetes_namespace: windup
@@ -22,12 +23,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2.4.0
 
-      - name: Setup Minikube-Kubernetes
-        uses: manusa/actions-setup-minikube@v2.4.3
+#      - name: Setup Minikube-Kubernetes
+#        uses: manusa/actions-setup-minikube@v2.4.3
+#        with:
+#          minikube version: v1.23.2
+#          kubernetes version: ${{ matrix.kubernetes_version }}
+#          github token: ${{ secrets.GITHUB_TOKEN }}
+#          driver: 'docker'
+
+      - name: Setup Windows subsystem for Linux
+        if: matrix.os == 'windows-latest'
+        uses: Vampire/setup-wsl@v1
+
+      - name: Perform Docker restart from the command-line
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: restart-service *docker*
+
+      - name: Install Tools for MacOs
+        if: matrix.os == 'macos-10.15'
+        run: |
+          brew install podman
+          podman machine init
+          podman machine start
+          podman info
+          podman version --format '{{.Server.Version}}'
+          alias docker=podman
+          docker version --format '{{.Server.Version}}'
+          VBoxManage --version
+          sysctl hw.physicalcpu hw.logicalcpu
+
+      - name: start minikube
+        uses: medyagh/setup-minikube@latest
         with:
-          minikube version: v1.23.2
-          kubernetes version: ${{ matrix.kubernetes_version }}
-          github token: ${{ secrets.GITHUB_TOKEN }}
+          kubernetes-version: ${{ matrix.kubernetes_version }}
 
       - name: Setup Java 11
         uses: actions/setup-java@v2
