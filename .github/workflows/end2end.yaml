@@ -102,17 +102,17 @@ jobs:
 
       - name: Deploy Tackle Windup API (following README instructions)
         run: |
-         minikube kubectl create namespace ${{env.kubernetes_namespace}}
-         sed "s\localhost/{user}/windup-api:0.0.1-SNAPSHOT\localhost/$USER/windup-api:test\g" minikube-development.yaml | minikube kubectl apply -n ${{env.kubernetes_namespace}} -f -
+         minikube kubectl -- create namespace ${{env.kubernetes_namespace}}
+         sed "s\localhost/{user}/windup-api:0.0.1-SNAPSHOT\localhost/$USER/windup-api:test\g" minikube-development.yaml | minikube kubectl -- apply -n ${{env.kubernetes_namespace}} -f -
 
       - name: Wait for Tackle Windup API (following README instructions)
         run: |
-         minikube kubectl wait -n ${{env.kubernetes_namespace}} --for condition=available deployment windup-api --timeout=-1s
+         minikube kubectl -- wait -n ${{env.kubernetes_namespace}} --for condition=available deployment windup-api --timeout=-1s
 
       - name: E2E test Tackle Windup API
         run: |
          ./mvnw verify -Dwindup.url=$(minikube service -n ${{env.kubernetes_namespace}} api --url)
 
-      - name: Stop minikube if self-hosted runner
+      - name: Stop minikube
         if: ${{ runner.name == 'windup-api-runner' && always()}}
         run: minikube stop
