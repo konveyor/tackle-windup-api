@@ -113,6 +113,10 @@ jobs:
         run: |
          ./mvnw verify -Dwindup.url=$(minikube service -n ${{env.kubernetes_namespace}} api --url)
 
+      - name: Delete Tackle Windup API deployment
+        if: ${{ always() }}
+        run: sed "s/{user}/$USER/g" minikube-development.yaml | minikube kubectl -- delete -n ${{env.kubernetes_namespace}} -f -
+
       - name: Stop minikube
-        if: ${{ runner.name == 'windup-api-runner' && always()}}
+        if: ${{ always() }}
         run: minikube stop
