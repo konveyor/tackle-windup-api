@@ -25,7 +25,7 @@
     <windup.web.scm.connection>scm:git:https://github.com/windup/windup-api.git</windup.web.scm.connection>
     <windup.web.developer.connection>scm:git:git@github.com:windup/windup-api.git</windup.web.developer.connection>
     <windup.web.scm.url>https://github.com/windup/windup-api</windup.web.scm.url>
-    <quarkus.artemis.version>1.0.3</quarkus.artemis.version>
+    <quarkus.artemis.version>1.0.4</quarkus.artemis.version>
   </properties>
   <scm>
     <tag>main</tag>
