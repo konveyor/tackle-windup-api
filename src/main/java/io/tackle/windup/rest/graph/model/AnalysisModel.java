@@ -7,7 +7,7 @@ import org.jboss.windup.graph.model.TypeValue;
 import org.jboss.windup.graph.model.WindupVertexFrame;
 import org.jboss.windup.web.services.model.WindupExecution;
 
-import java.util.Set;
+import java.util.List;
 
 @TypeValue(AnalysisModel.TYPE)
 public interface AnalysisModel extends WindupVertexFrame {
@@ -56,7 +56,7 @@ public interface AnalysisModel extends WindupVertexFrame {
      * Contains a collection of {@link WindupExecution}s.
      */
     @Adjacency(label = OWNS, direction = Direction.OUT)
-    Set<WindupExecutionModel> getWindupExecutions();
+    List<WindupExecutionModel> getWindupExecutions();
     
     /**
      * Adds execution
