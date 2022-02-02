@@ -234,7 +234,7 @@ public class GraphService {
                             .has(PATH_PARAM_ANALYSIS_ID, analysisId)
                             .next(),
                     WindupConfigurationModel.class);
-            final WindupExecutionModel windupExecutionModel = findWindupExecutionModelByWindupExecutionId(Long.parseLong(windupExecutionId));
+            final WindupExecutionModel windupExecutionModel = findLatestWindupExecutionModelByWindupExecutionId(Long.parseLong(windupExecutionId));
             windupExecutionModel.setConfiguration(windupConfigurationModel);
             LOG.debugf("Attached WindupConfigurationModel %s", windupConfigurationModel);
             final Long totalStoryPoint = getTotalStoryPoints(analysisId);
@@ -323,10 +323,11 @@ public class GraphService {
         }
     }
 
-    public WindupExecutionModel findWindupExecutionModelByWindupExecutionId(long windupExecutionId) {
+    public WindupExecutionModel findLatestWindupExecutionModelByWindupExecutionId(long windupExecutionId) {
         return framedGraph.frameElement(
                 getCentralGraphTraversalByType(WindupExecutionModel.class)
                         .has(WindupExecutionModel.WINDUP_EXECUTION_ID, windupExecutionId)
+                        .order().by(WindupExecutionModel.TIME_QUEUED, Order.desc)
                         .next(),
                 WindupExecutionModel.class);
     }
