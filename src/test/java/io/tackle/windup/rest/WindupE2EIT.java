@@ -17,6 +17,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.sse.SseEventSource;
 import java.io.File;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -179,6 +180,52 @@ public class WindupE2EIT {
                 .statusCode(200);
     }
 
+    private Object[] additionalKeyMatcherPairsForSampleApplicationExecution(int indexInResponseArray) {
+        Object[] additionalKeyMatcherPairs = new Object[20];
+        additionalKeyMatcherPairs[0] = String.format("[%d].totalStoryPoint", indexInResponseArray);
+        additionalKeyMatcherPairs[1] = is(96);
+        additionalKeyMatcherPairs[2] = String.format("[%d].numberIssuesPerCategory.'Migration Optional'", indexInResponseArray);
+        additionalKeyMatcherPairs[3] = is(1);
+        additionalKeyMatcherPairs[4] = String.format("[%d].numberIssuesPerCategory.'Migration Mandatory'", indexInResponseArray);
+        additionalKeyMatcherPairs[5] = is(53);
+        additionalKeyMatcherPairs[6] = String.format("[%d].numberIssuesPerCategory.'Cloud Mandatory'", indexInResponseArray);
+        additionalKeyMatcherPairs[7] = is(5);
+        additionalKeyMatcherPairs[8] = String.format("[%d].numberIssuesPerCategory.'Information'", indexInResponseArray);
+        additionalKeyMatcherPairs[9] = is(6);
+        additionalKeyMatcherPairs[10] = String.format("[%d].numberIssuesPerCategory.'Migration Potential'", indexInResponseArray);
+        additionalKeyMatcherPairs[11] = is(38);
+        additionalKeyMatcherPairs[12] = String.format("[%d].state", indexInResponseArray);
+        additionalKeyMatcherPairs[13] = is(ExecutionState.COMPLETED.toString());
+        additionalKeyMatcherPairs[14] = String.format("[%d].workTotal", indexInResponseArray);
+        additionalKeyMatcherPairs[15] = is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED);
+        additionalKeyMatcherPairs[16] = String.format("[%d].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].fileName", indexInResponseArray);
+        additionalKeyMatcherPairs[17] = is("foo.ear");
+        additionalKeyMatcherPairs[18] = String.format("[%d].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices.technologyID", indexInResponseArray);
+        additionalKeyMatcherPairs[19] = hasItems("rhr", "quarkus", "eap", "cloud-readiness");
+        return additionalKeyMatcherPairs;
+    }
+
+    private Object[] additionalKeyMatcherPairsForTestApplicationExecution(int indexInResponseArray) {
+        Object[] additionalKeyMatcherPairs = new Object[16];
+        additionalKeyMatcherPairs[0] = String.format("[%d].totalStoryPoint", indexInResponseArray);
+        additionalKeyMatcherPairs[1] = is(4);
+        additionalKeyMatcherPairs[2] = String.format("[%d].numberIssuesPerCategory.'Migration Mandatory'", indexInResponseArray);
+        additionalKeyMatcherPairs[3] = is(1);
+        additionalKeyMatcherPairs[4] = String.format("[%d].numberIssuesPerCategory.'Information'", indexInResponseArray);
+        additionalKeyMatcherPairs[5] = is(6);
+        additionalKeyMatcherPairs[6] = String.format("[%d].numberIssuesPerCategory.'Migration Potential'", indexInResponseArray);
+        additionalKeyMatcherPairs[7] = is(15);
+        additionalKeyMatcherPairs[8] = String.format("[%d].state", indexInResponseArray);
+        additionalKeyMatcherPairs[9] = is(ExecutionState.COMPLETED.toString());
+        additionalKeyMatcherPairs[10] = String.format("[%d].workTotal", indexInResponseArray);
+        additionalKeyMatcherPairs[11] = is(TEST_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED);
+        additionalKeyMatcherPairs[12] = String.format("[%d].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].applicationName", indexInResponseArray);
+        additionalKeyMatcherPairs[13] = is("bar.ear");
+        additionalKeyMatcherPairs[14] = String.format("[%d].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices.technologyID", indexInResponseArray);
+        additionalKeyMatcherPairs[15] = hasItems("eap");
+        return additionalKeyMatcherPairs;
+    }
+
     @Test
     public void testWindupPostAndDeleteAnalysisEndpoints() {
         // start the SSE listener immediately
@@ -209,16 +256,7 @@ public class WindupE2EIT {
         // check there's one execution with historic statistics
         getAnalysisExecutions(analysisId)
                 .body("size()", is(1),
-                        "[0].totalStoryPoint", is(96),
-                        "[0].numberIssuesPerCategory.'Migration Optional'", is(1),
-                        "[0].numberIssuesPerCategory.'Migration Mandatory'", is(53),
-                        "[0].numberIssuesPerCategory.'Cloud Mandatory'", is(5),
-                        "[0].numberIssuesPerCategory.'Information'", is(6),
-                        "[0].numberIssuesPerCategory.'Migration Potential'", is(38),
-                        "[0].state", is(ExecutionState.COMPLETED.toString()),
-                        "[0].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED),
-                        "[0].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].fileName", is("foo.ear"),
-                        "[0].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices.technologyID", hasItems("rhr", "quarkus", "eap", "cloud-readiness"));
+                        additionalKeyMatcherPairsForSampleApplicationExecution(0));
 
         // check the endpoint for retrieving all the issues is working with the analysis ID as query param
         given()
@@ -255,16 +293,7 @@ public class WindupE2EIT {
         // check there's still one execution with historic statistics
         getAnalysisExecutions(analysisId)
                 .body("size()", is(1),
-                        "[0].totalStoryPoint", is(96),
-                        "[0].numberIssuesPerCategory.'Migration Optional'", is(1),
-                        "[0].numberIssuesPerCategory.'Migration Mandatory'", is(53),
-                        "[0].numberIssuesPerCategory.'Cloud Mandatory'", is(5),
-                        "[0].numberIssuesPerCategory.'Information'", is(6),
-                        "[0].numberIssuesPerCategory.'Migration Potential'", is(38),
-                        "[0].state", is(ExecutionState.COMPLETED.toString()),
-                        "[0].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED),
-                        "[0].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].fileName", is("foo.ear"),
-                        "[0].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices.technologyID", hasItems("rhr", "quarkus", "eap", "cloud-readiness"));
+                        additionalKeyMatcherPairsForSampleApplicationExecution(0));
     }
 
     @Test
@@ -341,21 +370,13 @@ public class WindupE2EIT {
         checkAnalysisStatus(analysisId, AnalysisModel.Status.COMPLETED);
         // check there two executions with historic statistics and
         // the former execution became the 2nd element (index [1]) in the response
-        getAnalysisExecutions(analysisId)
-                .body("size()", is(2),
-                        "[1].totalStoryPoint", nullValue(),
-                        "[1].numberIssuesPerCategory.'Migration Optional'", nullValue(),
-                        "[1].state", is(ExecutionState.CANCELLED.toString()),
-                        "[1].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED),
-                        // let's validate also the new 1st element
-                        "[0].totalStoryPoint", is(4),
-                        "[0].numberIssuesPerCategory.'Migration Potential'", is(15),
-                        "[0].numberIssuesPerCategory.'Migration Mandatory'", is(1),
-                        "[0].numberIssuesPerCategory.'Information'", is(6),
-                        "[0].state", is(ExecutionState.COMPLETED.toString()),
-                        "[0].workTotal", is(TEST_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED),
-                        "[0].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].applicationName", is("bar.ear"),
-                        "[0].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices[0].technologyID", is("eap"));
+        final List<Object> checks =  new ArrayList<>(List.of(
+                "[1].totalStoryPoint", nullValue(),
+                "[1].numberIssuesPerCategory.'Migration Optional'", nullValue(),
+                "[1].state", is(ExecutionState.CANCELLED.toString()),
+                "[1].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED)));
+        checks.addAll(List.of(additionalKeyMatcherPairsForTestApplicationExecution(0)));
+        getAnalysisExecutions(analysisId).body("size()", is(2), checks.toArray());
     }
 
     @Test
@@ -429,24 +450,9 @@ public class WindupE2EIT {
         // check analysis status is completed
         checkAnalysisStatus(analysisId, AnalysisModel.Status.COMPLETED);
         // check there's just one execution with statics
-        getAnalysisExecutions(analysisId)
-                .body("size()", is(2),
-                        "[0].totalStoryPoint", is(4),
-                        "[0].numberIssuesPerCategory.'Migration Potential'", is(15),
-                        "[0].numberIssuesPerCategory.'Migration Mandatory'", is(1),
-                        "[0].numberIssuesPerCategory.'Information'", is(6),
-                        "[0].state", is(ExecutionState.COMPLETED.toString()),
-                        "[0].workTotal", is(TEST_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED),
-                        "[0].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].applicationName", is("bar.ear"),
-                        "[0].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices[0].technologyID", is("eap"),
-                        "[1].totalStoryPoint", is(96),
-                        "[1].numberIssuesPerCategory.'Migration Optional'", is(1),
-                        "[1].numberIssuesPerCategory.'Migration Mandatory'", is(53),
-                        "[1].numberIssuesPerCategory.'Cloud Mandatory'", is(5),
-                        "[1].numberIssuesPerCategory.'Information'", is(6),
-                        "[1].numberIssuesPerCategory.'Migration Potential'", is(38),
-                        "[1].state", is(ExecutionState.COMPLETED.toString()),
-                        "[1].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED));
+        final List<Object> checks =  new ArrayList<>(List.of(additionalKeyMatcherPairsForTestApplicationExecution(0)));
+        checks.addAll(List.of(additionalKeyMatcherPairsForSampleApplicationExecution(1)));
+        getAnalysisExecutions(analysisId).body("size()", is(2), checks.toArray());
     }
 
     @Test
