@@ -263,6 +263,7 @@ spec:
         - name: init-config
           image: busybox:latest
           command: ['sh', '-c', "until wget -T 1 http://${ARTEMIS_CONSOLE_SERVICE_HOST}:${ARTEMIS_CONSOLE_SERVICE_PORT}/; do echo waiting for artemis; sleep 2; done"]
+          imagePullPolicy: IfNotPresent
       containers:
         - name: windup-api
           image: localhost/{user}/windup-api:0.0.1-SNAPSHOT
