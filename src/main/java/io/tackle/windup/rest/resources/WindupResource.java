@@ -289,7 +289,6 @@ public class WindupResource {
                     analysisRequest.packages,
                     analysisRequest.sourceMode);
             final WindupExecutionModel windupExecutionModel = graphService.createFromWindupExecution(windupExecution);
-            windupExecutionModel.setAnalysis(analysisModel);
             analysisModel.addWindupExecution(windupExecutionModel);
             graphService.getCentralGraphTraversalSource().tx().commit();
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Analysis waiting to be executed\",\"totalWork\":2,\"workCompleted\":2}", analysisModel.getAnalysisId()));

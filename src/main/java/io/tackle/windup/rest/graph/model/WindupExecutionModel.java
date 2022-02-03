@@ -16,7 +16,6 @@ public interface WindupExecutionModel extends WindupVertexFrame {
     String TYPE = "WindupExecutionModel";
     String WINDUP_EXECUTION_ID = "windupExecutionModelId";
     String VERSION = "version";
-    String BELONGS = "belongs";
     String USES = "uses";
     /**
      * not using "outputPath" to avoid clashing with {@link org.jboss.windup.graph.model.WindupConfigurationModel#OUTPUT_PATH WindupConfigurationModel.OUTPUT_PATH}
@@ -46,18 +45,6 @@ public interface WindupExecutionModel extends WindupVertexFrame {
 
     @Property(VERSION)
     void setVersion(int version);
-
-    /**
-     * Contains the analysis owning this execution
-     */
-    @Adjacency(label = BELONGS, direction = Direction.IN)
-    AnalysisModel getAnalysis();
-
-    /**
-     * Sets the analysis owning this
-     */
-    @Adjacency(label = BELONGS, direction = Direction.IN)
-    void setAnalysis(AnalysisModel analysis);
 
     @Adjacency(label = USES, direction = Direction.OUT)
     WindupConfigurationModel getConfiguration();
