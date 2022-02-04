@@ -22,13 +22,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2.4.0
 
-      - name: Setup Minikube-Kubernetes
-        uses: manusa/actions-setup-minikube@v2.4.3
-        with:
-          minikube version: v1.25.1
-          kubernetes version: ${{ matrix.kubernetes_version }}
-          github token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup Java 11
         uses: actions/setup-java@v2
         with:
@@ -44,7 +37,16 @@ jobs:
               -Dquarkus.container-image.push=false \
               -Dquarkus.container-image.group=$USER \
               -Dquarkus.container-image.registry=localhost
-          minikube image load localhost/$USER/windup-api:test
+
+      - name: Setup Minikube-Kubernetes
+        uses: manusa/actions-setup-minikube@v2.4.3
+        with:
+          minikube version: v1.25.1
+          kubernetes version: ${{ matrix.kubernetes_version }}
+          github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load Tackle Windup API container image to Minikube
+        run: minikube image load localhost/$USER/windup-api:test
 
       - name: Deploy Tackle Windup API (following README instructions)
         run: |
