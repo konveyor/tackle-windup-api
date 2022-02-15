@@ -23,10 +23,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
+import static io.tackle.windup.rest.TestsExpectations.SAMPLE_APPLICATION_TOTAL_STORY_POINTS;
+import static io.tackle.windup.rest.TestsExpectations.TEST_APPLICATION_TOTAL_STORY_POINTS;
+import static io.tackle.windup.rest.TestsExpectations.getSampleApplicationNumberIssuesPerCategory;
+import static io.tackle.windup.rest.TestsExpectations.getTestApplicationNumberIssuesPerCategory;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.empty;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -52,7 +57,11 @@ public class WindupE2EIT {
         final Client client = ClientBuilder.newClient();
         final WebTarget target = client.target(String.format("%s/%s/analysisSse/", URL, PATH));
         final SseEventSource source = SseEventSource.target(target).build();
-        source.register(inboundSseEvent -> received.add(inboundSseEvent.readData()));
+        source.register(inboundSseEvent -> {
+            // helpful in case of need during local tests but please do not commit uncommented
+//            System.out.println("Received " + inboundSseEvent.readData());
+            received.add(inboundSseEvent.readData());
+        });
         source.open();
         return source;
     }
@@ -79,6 +88,7 @@ public class WindupE2EIT {
                 .multiPart("application", testApplication)
                 .multiPart("applicationFileName","bar.ear")
                 .multiPart("targets","eap7")
+                .multiPart("packages","org.jboss.devconf")
                 .when()
                 .put(String.format("%s/%s/analysis/{analysisId}", URL, PATH))
                 .then()
@@ -181,48 +191,60 @@ public class WindupE2EIT {
     }
 
     private Object[] additionalKeyMatcherPairsForSampleApplicationExecution(int indexInResponseArray) {
-        Object[] additionalKeyMatcherPairs = new Object[20];
-        additionalKeyMatcherPairs[0] = String.format("[%d].totalStoryPoint", indexInResponseArray);
-        additionalKeyMatcherPairs[1] = is(96);
+        Object[] additionalKeyMatcherPairs = new Object[26];
+        additionalKeyMatcherPairs[0] = String.format("[%d].totalStoryPoints", indexInResponseArray);
+        additionalKeyMatcherPairs[1] = is(SAMPLE_APPLICATION_TOTAL_STORY_POINTS.intValue());
         additionalKeyMatcherPairs[2] = String.format("[%d].numberIssuesPerCategory.'Migration Optional'", indexInResponseArray);
-        additionalKeyMatcherPairs[3] = is(1);
+        additionalKeyMatcherPairs[3] = is(getSampleApplicationNumberIssuesPerCategory("Migration Optional"));
         additionalKeyMatcherPairs[4] = String.format("[%d].numberIssuesPerCategory.'Migration Mandatory'", indexInResponseArray);
-        additionalKeyMatcherPairs[5] = is(53);
+        additionalKeyMatcherPairs[5] = is(getSampleApplicationNumberIssuesPerCategory("Migration Mandatory"));
         additionalKeyMatcherPairs[6] = String.format("[%d].numberIssuesPerCategory.'Cloud Mandatory'", indexInResponseArray);
-        additionalKeyMatcherPairs[7] = is(5);
+        additionalKeyMatcherPairs[7] = is(getSampleApplicationNumberIssuesPerCategory("Cloud Mandatory"));
         additionalKeyMatcherPairs[8] = String.format("[%d].numberIssuesPerCategory.'Information'", indexInResponseArray);
-        additionalKeyMatcherPairs[9] = is(6);
+        additionalKeyMatcherPairs[9] = is(getSampleApplicationNumberIssuesPerCategory("Information"));
         additionalKeyMatcherPairs[10] = String.format("[%d].numberIssuesPerCategory.'Migration Potential'", indexInResponseArray);
-        additionalKeyMatcherPairs[11] = is(38);
+        additionalKeyMatcherPairs[11] = is(getSampleApplicationNumberIssuesPerCategory("Migration Potential"));
         additionalKeyMatcherPairs[12] = String.format("[%d].state", indexInResponseArray);
         additionalKeyMatcherPairs[13] = is(ExecutionState.COMPLETED.toString());
         additionalKeyMatcherPairs[14] = String.format("[%d].workTotal", indexInResponseArray);
         additionalKeyMatcherPairs[15] = is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED);
-        additionalKeyMatcherPairs[16] = String.format("[%d].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].fileName", indexInResponseArray);
+        additionalKeyMatcherPairs[16] = String.format("[%d].applicationFileName", indexInResponseArray);
         additionalKeyMatcherPairs[17] = is("foo.ear");
-        additionalKeyMatcherPairs[18] = String.format("[%d].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices.technologyID", indexInResponseArray);
-        additionalKeyMatcherPairs[19] = hasItems("rhr", "quarkus", "eap", "cloud-readiness");
+        additionalKeyMatcherPairs[18] = String.format("[%d].targets", indexInResponseArray);
+        additionalKeyMatcherPairs[19] = hasItems("rhr", "quarkus", "eap:[7]", "cloud-readiness");
+        additionalKeyMatcherPairs[20] = String.format("[%d].sources", indexInResponseArray);
+        additionalKeyMatcherPairs[21] = empty();
+        additionalKeyMatcherPairs[22] = String.format("[%d].packages", indexInResponseArray);
+        additionalKeyMatcherPairs[23] = empty();
+        additionalKeyMatcherPairs[24] = String.format("[%d].sourceMode", indexInResponseArray);
+        additionalKeyMatcherPairs[25] = is(false);
         return additionalKeyMatcherPairs;
     }
 
     private Object[] additionalKeyMatcherPairsForTestApplicationExecution(int indexInResponseArray) {
-        Object[] additionalKeyMatcherPairs = new Object[16];
-        additionalKeyMatcherPairs[0] = String.format("[%d].totalStoryPoint", indexInResponseArray);
-        additionalKeyMatcherPairs[1] = is(4);
+        Object[] additionalKeyMatcherPairs = new Object[22];
+        additionalKeyMatcherPairs[0] = String.format("[%d].totalStoryPoints", indexInResponseArray);
+        additionalKeyMatcherPairs[1] = is(TEST_APPLICATION_TOTAL_STORY_POINTS.intValue());
         additionalKeyMatcherPairs[2] = String.format("[%d].numberIssuesPerCategory.'Migration Mandatory'", indexInResponseArray);
-        additionalKeyMatcherPairs[3] = is(1);
+        additionalKeyMatcherPairs[3] = is(getTestApplicationNumberIssuesPerCategory("Migration Mandatory"));
         additionalKeyMatcherPairs[4] = String.format("[%d].numberIssuesPerCategory.'Information'", indexInResponseArray);
-        additionalKeyMatcherPairs[5] = is(6);
+        additionalKeyMatcherPairs[5] = is(getTestApplicationNumberIssuesPerCategory("Information"));
         additionalKeyMatcherPairs[6] = String.format("[%d].numberIssuesPerCategory.'Migration Potential'", indexInResponseArray);
-        additionalKeyMatcherPairs[7] = is(15);
+        additionalKeyMatcherPairs[7] = is(getTestApplicationNumberIssuesPerCategory("Migration Potential"));
         additionalKeyMatcherPairs[8] = String.format("[%d].state", indexInResponseArray);
         additionalKeyMatcherPairs[9] = is(ExecutionState.COMPLETED.toString());
         additionalKeyMatcherPairs[10] = String.format("[%d].workTotal", indexInResponseArray);
         additionalKeyMatcherPairs[11] = is(TEST_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED);
-        additionalKeyMatcherPairs[12] = String.format("[%d].vertices_out.uses.vertices[0].vertices_out.inputPath.vertices[0].applicationName", indexInResponseArray);
+        additionalKeyMatcherPairs[12] = String.format("[%d].applicationFileName", indexInResponseArray);
         additionalKeyMatcherPairs[13] = is("bar.ear");
-        additionalKeyMatcherPairs[14] = String.format("[%d].vertices_out.uses.vertices[0].vertices_out.targetTechnology.vertices.technologyID", indexInResponseArray);
-        additionalKeyMatcherPairs[15] = hasItems("eap");
+        additionalKeyMatcherPairs[14] = String.format("[%d].targets", indexInResponseArray);
+        additionalKeyMatcherPairs[15] = hasItems("eap:[7]");
+        additionalKeyMatcherPairs[16] = String.format("[%d].sources", indexInResponseArray);
+        additionalKeyMatcherPairs[17] = empty();
+        additionalKeyMatcherPairs[18] = String.format("[%d].packages", indexInResponseArray);
+        additionalKeyMatcherPairs[19] = hasItems("org.jboss.devconf");
+        additionalKeyMatcherPairs[20] = String.format("[%d].sourceMode", indexInResponseArray);
+        additionalKeyMatcherPairs[21] = is(false);
         return additionalKeyMatcherPairs;
     }
 
@@ -332,13 +354,13 @@ public class WindupE2EIT {
                 .until(() -> received.get(received.size() - 1).contains("\"state\":\"CANCELLED\""));
 
         // check the last delete endpoint's event has been sent
-        assertTrue(received.stream().anyMatch(event -> event.endsWith("\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}")));
+        assertTrue(received.stream().anyMatch(event -> event.endsWith("\"state\":\"DELETE\",\"currentTask\":\"Delete analysis graph\",\"totalWork\":1,\"workCompleted\":1}")));
         // check analysis status is cancelled
         waitForAnalysisStatusToBe(analysisId, AnalysisModel.Status.CANCELLED);
         // check there's still one execution with historic statistics
         getAnalysisExecutions(analysisId)
                 .body("size()", is(1),
-                        "[0].totalStoryPoint", nullValue(),
+                        "[0].totalStoryPoints", nullValue(),
                         "[0].numberIssuesPerCategory.'Migration Optional'", nullValue(),
                         "[0].state", is(ExecutionState.CANCELLED.toString()),
                         "[0].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED));
@@ -371,7 +393,7 @@ public class WindupE2EIT {
         // check there two executions with historic statistics and
         // the former execution became the 2nd element (index [1]) in the response
         final List<Object> checks =  new ArrayList<>(List.of(
-                "[1].totalStoryPoint", nullValue(),
+                "[1].totalStoryPoints", nullValue(),
                 "[1].numberIssuesPerCategory.'Migration Optional'", nullValue(),
                 "[1].state", is(ExecutionState.CANCELLED.toString()),
                 "[1].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED)));

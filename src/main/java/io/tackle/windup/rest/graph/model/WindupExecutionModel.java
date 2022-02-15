@@ -6,6 +6,7 @@ import org.jboss.windup.graph.Property;
 import org.jboss.windup.graph.model.TypeValue;
 import org.jboss.windup.graph.model.WindupConfigurationModel;
 import org.jboss.windup.graph.model.WindupVertexFrame;
+import org.jboss.windup.rules.apps.java.model.WindupJavaConfigurationModel;
 import org.jboss.windup.web.services.model.ExecutionState;
 
 import java.util.Map;
@@ -16,7 +17,8 @@ public interface WindupExecutionModel extends WindupVertexFrame {
     String TYPE = "WindupExecutionModel";
     String WINDUP_EXECUTION_ID = "windupExecutionModelId";
     String VERSION = "version";
-    String USES = "uses";
+    String USES_CONFIGURATION = "uses";
+    String USES_JAVA_CONFIGURATION = "usesJavaConfiguration";
     /**
      * not using "outputPath" to avoid clashing with {@link org.jboss.windup.graph.model.WindupConfigurationModel#OUTPUT_PATH WindupConfigurationModel.OUTPUT_PATH}
      */
@@ -31,6 +33,7 @@ public interface WindupExecutionModel extends WindupVertexFrame {
     String CURRENT_TASK = "currentTask";
     String LAST_MODIFIED = "lastModified";
     String STATE = "state";
+    String APPLICATION_FILE_NAME = "applicationFileName";
     String TOTAL_STORY_POINT = "totalStoryPoint";
     String NUMBER_ISSUES_PER_CATEGORY = "numberIssuesPerCategory";
 
@@ -46,11 +49,17 @@ public interface WindupExecutionModel extends WindupVertexFrame {
     @Property(VERSION)
     void setVersion(int version);
 
-    @Adjacency(label = USES, direction = Direction.OUT)
+    @Adjacency(label = USES_CONFIGURATION, direction = Direction.OUT)
     WindupConfigurationModel getConfiguration();
 
-    @Adjacency(label = USES, direction = Direction.OUT)
+    @Adjacency(label = USES_CONFIGURATION, direction = Direction.OUT)
     void setConfiguration(WindupConfigurationModel configuration);
+
+    @Adjacency(label = USES_JAVA_CONFIGURATION, direction = Direction.OUT)
+    WindupJavaConfigurationModel getJavaConfiguration();
+
+    @Adjacency(label = USES_JAVA_CONFIGURATION, direction = Direction.OUT)
+    void setJavaConfiguration(WindupJavaConfigurationModel javaConfiguration);
 
     /**
      * Contains the path to the output directory for windup (containing the reports and graph data).
@@ -219,4 +228,16 @@ public interface WindupExecutionModel extends WindupVertexFrame {
      */
     @Property(NUMBER_ISSUES_PER_CATEGORY)
     void setNumberIssuesPerCategory(Map<Object, Long> numberIssuePerCategory);
+
+    /**
+     * Get the analyzed application file name (based on the one application per analysis assumption)
+     */
+    @Property(APPLICATION_FILE_NAME)
+    String getApplicationFileName();
+
+    /**
+     * Set the analyzed application file name (based on the one application per analysis assumption)
+     */
+    @Property(APPLICATION_FILE_NAME)
+    void setApplicationFileName(String applicationFileName);
 }
