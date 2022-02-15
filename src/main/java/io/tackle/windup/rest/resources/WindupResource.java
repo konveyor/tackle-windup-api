@@ -12,6 +12,8 @@ import io.tackle.windup.rest.graph.model.AnalysisModel;
 import io.tackle.windup.rest.graph.model.AnalysisModel.Status;
 import io.tackle.windup.rest.graph.model.WindupExecutionModel;
 import io.tackle.windup.rest.jms.WindupExecutionProducer;
+import io.tackle.windup.rest.mapper.AnalysisMapper;
+import io.tackle.windup.rest.mapper.WindupExecutionMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
@@ -64,6 +66,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static io.tackle.windup.rest.graph.model.WindupExecutionModel.TIME_QUEUED;
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.out;
@@ -94,6 +97,12 @@ public class WindupResource {
 
     @Inject
     WindupBroadcasterResource windupBroadcasterResource;
+
+    @Inject
+    AnalysisMapper analysisMapper;
+
+    @Inject
+    WindupExecutionMapper windupExecutionMapper;
 
     @GET
     @Path("/issue")
@@ -160,11 +169,10 @@ public class WindupResource {
     @Path("/analysis/{" + PATH_PARAM_ANALYSIS_ID + "}/")
     public Response deleteAnalysis(@PathParam(PATH_PARAM_ANALYSIS_ID) String analysisId) {
         try {
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Cancel ongoing analysis\",\"totalWork\":2,\"workCompleted\":0}", analysisId));
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Cancel ongoing analysis\",\"totalWork\":1,\"workCompleted\":0}", analysisId));
             windupExecutionProducer.cancelAnalysis(Long.parseLong(analysisId));
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis graph\",\"totalWork\":2,\"workCompleted\":1}", analysisId));
+            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis graph\",\"totalWork\":1,\"workCompleted\":1}", analysisId));
             graphService.deleteAnalysisGraphFromCentralGraph(analysisId);
-            windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis\",\"totalWork\":2,\"workCompleted\":2}", analysisId));
             AnalysisModel analysisModel = graphService.findAnalysisModelByAnalysisId(Long.parseLong(analysisId));
             analysisModel.setStatus(analysisModel.getStatus() == Status.COMPLETED ? Status.DELETED : Status.CANCELLED);
             graphService.getCentralGraphTraversalSource().tx().commit();
@@ -206,7 +214,7 @@ public class WindupResource {
             centralGraph.tx().rollback();
             LOG.info("...running the retrieveAnalysis \"query\"...");
             final AnalysisModel analysisModel = graphService.findAnalysisModelByAnalysisId(Long.parseLong(analysisId));
-            return Response.ok(convertToMap(analysisModel.getElement(), true, 2)).build();
+            return Response.ok(analysisMapper.toAnalysisDTO(analysisModel)).build();
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -237,8 +245,12 @@ public class WindupResource {
             // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
             centralGraph.tx().rollback();
             LOG.info("...running the retrieveAnalysisExecutions \"query\"...");
-            final List<Vertex> windupExecutionModels = graphService.findWindupExecutionModelByAnalysisId(Long.parseLong(analysisId));
-            return Response.ok(frameIterableToResult(1L, new FramedVertexIterable<>(graphService.getCentralFramedGraph(), windupExecutionModels, WindupExecutionModel.class), 3)).build();
+            final List<? extends WindupExecutionModel> windupExecutionModels = graphService.findWindupExecutionModelByAnalysisId(Long.parseLong(analysisId));
+            return Response.ok(
+                            windupExecutionModels.stream()
+                                    .map(windupExecutionModel -> windupExecutionMapper.toExecutionDTO(windupExecutionModel))
+                                    .collect(Collectors.toList()))
+                    .build();
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -289,6 +301,7 @@ public class WindupResource {
                     analysisRequest.packages,
                     analysisRequest.sourceMode);
             final WindupExecutionModel windupExecutionModel = graphService.createFromWindupExecution(windupExecution);
+            windupExecutionModel.setApplicationFileName(analysisRequest.applicationFileName);
             analysisModel.addWindupExecution(windupExecutionModel);
             graphService.getCentralGraphTraversalSource().tx().commit();
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"INIT\",\"currentTask\":\"Analysis waiting to be executed\",\"totalWork\":2,\"workCompleted\":2}", analysisModel.getAnalysisId()));

@@ -26,6 +26,7 @@
     <windup.web.developer.connection>scm:git:git@github.com:windup/windup-api.git</windup.web.developer.connection>
     <windup.web.scm.url>https://github.com/windup/windup-api</windup.web.scm.url>
     <quarkus.artemis.version>1.0.4</quarkus.artemis.version>
+    <mapstruct.version>1.4.2.Final</mapstruct.version>
   </properties>
   <scm>
     <tag>main</tag>
@@ -154,6 +155,11 @@
         <classifier>forge-addon</classifier>
     </dependency>
     <dependency>
+        <groupId>org.jboss.windup.rules.apps</groupId>
+        <artifactId>windup-rules-java-api</artifactId>
+        <version>${windup.version}</version>
+    </dependency>
+    <dependency>
         <groupId>commons-beanutils</groupId>
         <artifactId>commons-beanutils</artifactId>
         <version>1.9.4</version>
@@ -206,6 +212,21 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-health</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct</artifactId>
+      <version>${mapstruct.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct-processor</artifactId>
+      <version>${mapstruct.version}</version>
+    </dependency>
+    <dependency>
+    <groupId>io.github.classgraph</groupId>
+    <artifactId>classgraph</artifactId>
+    <version>4.8.138</version>
+</dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit5</artifactId>
@@ -347,6 +368,8 @@
                     <goal>copy-resources</goal>
                 </goals>
                 <configuration>
+                    <!-- copying because accessing it (even if for just querying) changes some files
+                    and so it would imply a change in the committed files every time the tests run -->
                     <outputDirectory>${basedir}/target/tests-central-graph</outputDirectory>
                     <resources>
                         <resource>

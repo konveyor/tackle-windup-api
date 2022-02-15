@@ -90,6 +90,10 @@ public class WindupExecutionStatusConsumer implements Runnable {
                         windupExecutionModel.setTimeStarted(windupExecution.getTimeStarted().getTimeInMillis());
                         analysisModel.setStatus(Status.STARTED);
                         break;
+                    case FAILED:
+                    case CANCELLED:
+                        windupExecutionModel.setTimeFinished(windupExecution.getLastModified().getTimeInMillis());
+                        break;
                     default:
                         break;
                 }
