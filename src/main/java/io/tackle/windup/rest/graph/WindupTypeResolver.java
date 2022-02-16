@@ -13,6 +13,7 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.janusgraph.core.JanusGraphEdge;
+import org.jboss.logging.Logger;
 import org.jboss.windup.graph.model.TypeValue;
 import org.jboss.windup.graph.model.WindupFrame;
 import org.jboss.windup.util.FurnaceCompositeClassLoader;
@@ -29,7 +30,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
  */
 public class WindupTypeResolver implements TypeResolver {
 
-    private static final Logger LOG = Logger.getLogger(WindupTypeResolver.class.getName());
+    private static final Logger LOG = Logger.getLogger(WindupTypeResolver.class);
 
     private final FurnaceCompositeClassLoader compositeClassLoader;
     private Map<String, Class<WindupFrame<?>>> registeredTypes;
@@ -102,14 +102,13 @@ public class WindupTypeResolver implements TypeResolver {
                 final Class<?> annotatedClass = annotatedClassInfo.loadClass();
                 final AnnotationInfo annotationInfo = annotatedClassInfo.getAnnotationInfo(TypeValue.class);
 
-                LOG.info(" Adding type to registry: " + annotatedClass.getName());
+                LOG.debugf("Adding type to registry: %s", annotatedClass.getName());
 
                 // Do not attempt to add types without @TypeValue. We use
                 // *Model types with no @TypeValue to function as essentially
                 // "abstract" models that would never exist on their own (only as subclasses).
                 if (annotationInfo == null) {
-                    String msg = String.format("@%s is missing on type %s", TypeValue.class.getName(), annotatedClass.getName());
-                    LOG.warning(msg);
+                    LOG.warnf("@%s is missing on type %s", TypeValue.class.getName(), annotatedClass.getName());
                     return;
                 }
 
