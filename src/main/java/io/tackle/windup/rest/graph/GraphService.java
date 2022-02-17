@@ -28,6 +28,7 @@ import org.janusgraph.core.schema.JanusGraphManagement;
 import org.janusgraph.core.schema.Mapping;
 import org.janusgraph.util.system.ConfigurationUtil;
 import org.jboss.logging.Logger;
+import org.jboss.windup.graph.AnnotationFrameFactory;
 import org.jboss.windup.graph.MapInAdjacentPropertiesHandler;
 import org.jboss.windup.graph.MapInAdjacentVerticesHandler;
 import org.jboss.windup.graph.MapInPropertiesHandler;
@@ -88,7 +89,7 @@ public class GraphService {
         janusGraph = openCentralJanusGraph();
         final ReflectionCache reflections = new ReflectionCache();
         final FurnaceCompositeClassLoader compositeClassLoader = new FurnaceCompositeClassLoader(Thread.currentThread().getContextClassLoader(), Collections.emptyList());
-        final org.jboss.windup.graph.AnnotationFrameFactory frameFactory = new WindupApiAnnotationFrameFactory(Thread.currentThread().getContextClassLoader(), reflections, getMethodHandlers());
+        final AnnotationFrameFactory frameFactory = new WindupApiAnnotationFrameFactory(Thread.currentThread().getContextClassLoader(), reflections, getMethodHandlers());
         framedGraph = new DelegatingFramedGraph<>(janusGraph, frameFactory, new WindupTypeResolver(compositeClassLoader));
     }
 
@@ -160,7 +161,7 @@ public class GraphService {
     public void updateCentralJanusGraph(String sourceGraph, String analysisId, String windupExecutionId) {
         LOG.infof("Start...");
         final ReflectionCache reflections = new ReflectionCache();
-        final AnnotationFrameFactory frameFactory = new AnnotationFrameFactory(reflections, getMethodHandlers());
+        final AnnotationFrameFactory frameFactory = new WindupApiAnnotationFrameFactory(Thread.currentThread().getContextClassLoader(), reflections, getMethodHandlers());
         final Map<Object, Object> verticesBeforeAndAfter = new HashMap<>();
         try (JanusGraph janusGraph = openJanusGraph(sourceGraph);
              FramedGraph framedGraph = new DelegatingFramedGraph<>(janusGraph, frameFactory, new PolymorphicTypeResolver(reflections))) {

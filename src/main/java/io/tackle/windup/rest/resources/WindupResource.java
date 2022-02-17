@@ -6,7 +6,6 @@ import com.syncleus.ferma.ReflectionCache;
 import com.syncleus.ferma.framefactories.annotation.MethodHandler;
 import com.syncleus.ferma.typeresolvers.PolymorphicTypeResolver;
 import io.tackle.windup.rest.dto.AnalysisStatusDTO;
-import io.tackle.windup.rest.graph.AnnotationFrameFactory;
 import io.tackle.windup.rest.graph.GraphService;
 import io.tackle.windup.rest.graph.model.AnalysisModel;
 import io.tackle.windup.rest.graph.model.AnalysisModel.Status;
@@ -27,11 +26,13 @@ import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.janusgraph.core.JanusGraph;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
+import org.jboss.windup.graph.AnnotationFrameFactory;
 import org.jboss.windup.graph.MapInAdjacentPropertiesHandler;
 import org.jboss.windup.graph.MapInAdjacentVerticesHandler;
 import org.jboss.windup.graph.MapInPropertiesHandler;
 import org.jboss.windup.graph.SetInPropertiesHandler;
 import org.jboss.windup.graph.WindupAdjacencyMethodHandler;
+import org.jboss.windup.graph.WindupApiAnnotationFrameFactory;
 import org.jboss.windup.graph.WindupPropertyMethodHandler;
 import org.jboss.windup.graph.frames.FramedVertexIterable;
 import org.jboss.windup.graph.javahandler.JavaHandlerHandler;
@@ -114,7 +115,7 @@ public class WindupResource {
     @Path("/analysis/{" + PATH_PARAM_ANALYSIS_ID + "}/issues")
     public Response analysisIssues(@PathParam(PATH_PARAM_ANALYSIS_ID) String analysisId) {
         final ReflectionCache reflections = new ReflectionCache();
-        final AnnotationFrameFactory frameFactory = new AnnotationFrameFactory(reflections, getMethodHandlers());
+        final AnnotationFrameFactory frameFactory = new WindupApiAnnotationFrameFactory(Thread.currentThread().getContextClassLoader(), reflections, getMethodHandlers());
         try {
             JanusGraph centralGraph = graphService.getCentralJanusGraph();
             // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
@@ -354,8 +355,7 @@ public class WindupResource {
                 continue;
 */
 
-            if (WindupFrame.TYPE_PROP.equals(key))
-            {
+            if (WindupFrame.TYPE_PROP.equals(key)) {
                 List<String> types = new ArrayList<>();
                 Iterator<VertexProperty<String>> typeProperties = vertex.properties(key);
                 while (typeProperties.hasNext())
@@ -363,8 +363,7 @@ public class WindupResource {
                     types.add(typeProperties.next().value());
                 }
                 result.put(key, types);
-            } else
-            {
+            } else {
                 result.put(key, vertex.property(key).orElse(null));
             }
         }
