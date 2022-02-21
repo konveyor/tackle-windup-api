@@ -26,16 +26,17 @@ public interface WindupExecutionMapper {
             @Mapping(source = "javaConfiguration.sourceMode", target = "sourceMode")
     })
     ExecutionDTO toExecutionDTO(WindupExecutionModel windupExecutionModel);
-    
-    default Map<String, Long> mapNumberIssuesPerCategory(Map<Object, Long> numberIssuesPerCategory) {
-        if (numberIssuesPerCategory == null) return null;
-        return numberIssuesPerCategory
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(
-                        entry -> entry.getKey().toString(),
-                        Map.Entry::getValue
-                ));
+
+    default Map<String, Long> mapNumberIssuesPerCategory(Map<Object, Long> numberIssuesPerCategories) {
+        return Optional.ofNullable(numberIssuesPerCategories)
+                .map(numberIssuesPerCategory ->
+                        numberIssuesPerCategory.entrySet()
+                                .stream()
+                                .collect(Collectors.toMap(
+                                        entry -> entry.getKey().toString(),
+                                        Map.Entry::getValue
+                                )))
+                .orElse(Collections.emptyMap());
     }
 
     default List<String> mapTechnologyReferences(List<TechnologyReferenceModel> technologyReferences) {
@@ -51,9 +52,10 @@ public interface WindupExecutionMapper {
     }
 
     default List<String> mapPackages(List<PackageModel> packages) {
-        if (packages == null) return null;
-        return packages.stream()
-                .map(PackageModel::getPackageName)
-                .collect(Collectors.toList());
+        return Optional.ofNullable(packages)
+                .map(packageModels -> packageModels.stream()
+                        .map(PackageModel::getPackageName)
+                        .collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
     }
 }
