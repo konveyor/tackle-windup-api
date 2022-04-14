@@ -4,7 +4,6 @@ registries:
     type: docker-registry
     url: registry.access.redhat.com
 updates:
-
   # Maintain dependencies for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -21,21 +20,12 @@ updates:
     commit-message:
       prefix: "Maven pom.xml"
       include: "scope"
-  # Maintain container images in Dockerfiles
+  # Maintain container images in Dockerfiles based on Red Hat registry
   - package-ecosystem: "docker"
     directory: "/"
+    registries: "*"
     schedule:
       interval: "daily"
     commit-message:
       prefix: "Dockerfile"
-      include: "scope"
-  # Maintain container images in Dockerfiles based on Red Hat registry
-  - package-ecosystem: "docker"
-    directory: "/"
-    registries:
-      - redhatregistry
-    schedule:
-      interval: "daily"
-    commit-message:
-      prefix: "Red Hat registry"
       include: "scope"
