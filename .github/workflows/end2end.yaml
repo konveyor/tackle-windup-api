@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        # for updating, check https://github.com/kubernetes/kubernetes/releases
         kubernetes_version: [v1.20.15, v1.21.11, v1.22.8, v1.23.5]
       fail-fast: false
     env:
@@ -41,6 +42,7 @@ jobs:
       - name: Setup Minikube-Kubernetes
         uses: manusa/actions-setup-minikube@v2.4.3
         with:
+          # for updating, check https://github.com/kubernetes/minikube/releases
           minikube version: v1.25.2
           kubernetes version: ${{ matrix.kubernetes_version }}
           github token: ${{ secrets.GITHUB_TOKEN }}
