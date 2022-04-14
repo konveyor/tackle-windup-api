@@ -28,7 +28,7 @@ objects:
         - ReadWriteMany
       resources:
         requests:
-          storage: 1Gi
+          storage: 10Gi
       volumeMode: Filesystem
   - kind: PersistentVolumeClaim
     apiVersion: v1

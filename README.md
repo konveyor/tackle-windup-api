@@ -4,6 +4,7 @@
   * [Summary](#summary)
   * [Features](#features)
 - [Technical Considerations](#technical-considerations)
+  * [Requirements](#requirements)
   * [REST endpoints](#rest-endpoints)
   * [Configuration parameters](#configuration-parameters)
     + [Max size for uploaded applications](#max-size-for-uploaded-applications)
@@ -39,6 +40,18 @@ Features available:
 Features to be added: check the [Issues](https://github.com/konveyor/tackle-windup-api/issues) for enhancements already planned and feel free to add your request for new features if it's not there yet.  
 
 # Technical Considerations
+
+## Requirements
+
+For deploying the "API with sample page" the requirements are:
+
+* 10 GB file system for Persistent Volumes that supports access mode `ReadWriteMany`
+* 10 GB file system for Persistent Volumes that supports access mode `ReadWriteOnce`
+
+For deploying the "API with Tackle" the requirements are:
+
+* 10 GB file system for Persistent Volumes that supports access mode `ReadWriteMany`
+* 14 GB file system for Persistent Volumes that supports access mode `ReadWriteOnce`
 
 ## REST endpoints
 
