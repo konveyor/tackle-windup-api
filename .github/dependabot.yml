@@ -1,4 +1,8 @@
 version: 2
+registries:
+  redhatregistry:
+    type: docker-registry
+    url: registry.access.redhat.com
 updates:
 
   # Maintain dependencies for GitHub Actions
@@ -24,4 +28,14 @@ updates:
       interval: "daily"
     commit-message:
       prefix: "Dockerfile"
+      include: "scope"
+  # Maintain container images in Dockerfiles based on Red Hat registry
+  - package-ecosystem: "docker"
+    directory: "/"
+    registries:
+      - redhatregistry
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "Red Hat registry"
       include: "scope"
