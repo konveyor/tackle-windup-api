@@ -61,6 +61,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -173,6 +174,17 @@ public class WindupResource {
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Cancel ongoing analysis\",\"totalWork\":1,\"workCompleted\":0}", analysisId));
             windupExecutionProducer.cancelAnalysis(Long.parseLong(analysisId));
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis graph\",\"totalWork\":1,\"workCompleted\":1}", analysisId));
+            final java.nio.file.Path reportsFolder = Paths.get(graphService.findLatestWindupExecutionOutputPathByAnalysisId(analysisId), "reports");
+            if (Files.exists(reportsFolder)) {
+                Files.walk(reportsFolder)
+                        .sorted(Comparator.reverseOrder())
+                        .map(java.nio.file.Path::toFile)
+                        .forEach(file -> {
+                            LOG.debugf("Delete %s\n", file.getAbsolutePath());
+                            file.delete();
+                        });
+            }
+            Files.deleteIfExists(Paths.get(graphService.findLatestWindupExecutionOutputPathByAnalysisId(analysisId), "index.html"));
             graphService.deleteAnalysisGraphFromCentralGraph(analysisId);
             AnalysisModel analysisModel = graphService.findAnalysisModelByAnalysisId(Long.parseLong(analysisId));
             analysisModel.setStatus(analysisModel.getStatus() == Status.COMPLETED ? Status.DELETED : Status.CANCELLED);
