@@ -371,6 +371,26 @@ public class GraphService {
                 .toList(WindupExecutionModel.class);
     }
 
+    public WindupExecutionModel findLatestWindupExecutionModelByAnalysisId(long analysisId) {
+        return framedGraph.traverse(
+                graphTraversalSource -> graphTraversalSource.V()
+                        .has(WindupFrame.TYPE_PROP, WindupTypeResolver.getTypeValue(AnalysisModel.class))
+                        .has(AnalysisModel.ANALYSIS_ID, analysisId)
+                        .out(AnalysisModel.OWNS)
+                        .order().by(WindupExecutionModel.TIME_QUEUED, Order.desc))
+                .next(1, WindupExecutionModel.class)
+                .get(0);
+    }
+
+    public String findLatestWindupExecutionOutputPathByAnalysisId(String analysisId) {
+        final JanusGraph centralGraph = getCentralJanusGraph();
+        // https://github.com/JanusGraph/janusgraph/issues/500#issuecomment-327868102
+        centralGraph.tx().rollback();
+        LOG.debugf("Retrieving the static report output path for %s", analysisId);
+        final WindupExecutionModel windupExecutionModel = findLatestWindupExecutionModelByAnalysisId(Long.parseLong(analysisId));
+        return windupExecutionModel.getOutputPath();
+    }
+
     public Long getTotalStoryPoints(String analysisId) {
         return getCentralGraphTraversalByType(EffortReportModel.class)
                 .has(PATH_PARAM_ANALYSIS_ID, analysisId)

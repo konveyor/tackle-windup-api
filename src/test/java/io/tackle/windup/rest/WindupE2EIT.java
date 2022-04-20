@@ -18,6 +18,7 @@ import javax.ws.rs.sse.SseEventSource;
 import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -248,6 +249,101 @@ public class WindupE2EIT {
         return additionalKeyMatcherPairs;
     }
 
+    public void checkStaticReportsExists(String analysisId, String expectedApplicationName) {
+        // check 'index.html' page is provided as default entry page
+        checkHtmlStaticReportExistsWithTitle(analysisId, "", "Application List", expectedApplicationName);
+        // check 'index.html' page is provided if dire requested
+        checkHtmlStaticReportExistsWithTitle(analysisId, "index.html", "Application List", expectedApplicationName);
+        // check another page is available testing the "Rule Providers" page
+        checkHtmlStaticReportExistsWithTitle(analysisId, "reports/windup_ruleproviders.html", "Migration Toolkit for Applications by Red Hat Rule Providers");
+
+        // check also Javascript files work fine
+        given()
+                .pathParam("analysisId", analysisId)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/static-report/reports/resources/js/windup-migration-issues.js", URL, PATH))
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON);
+
+        // check PNG images work fine
+        given()
+                .pathParam("analysisId", analysisId)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/static-report/reports/resources/img/mta-icon.png", URL, PATH))
+                .then()
+                .statusCode(200)
+                .contentType("image/png");
+
+        checkNotFoundExternalFiles(analysisId);
+    }
+    public void checkStaticReportsDoesNotExist(String analysisId) {
+        given()
+                .pathParam("analysisId", analysisId)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/static-report/", URL, PATH))
+                .then()
+                .statusCode(404);
+
+        given()
+                .pathParam("analysisId", analysisId)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/static-report/reports/resources/js/windup-migration-issues.js", URL, PATH))
+                .then()
+                .statusCode(404);
+
+        checkNotFoundExternalFiles(analysisId);
+    }
+
+    private void checkNotFoundExternalFiles(String analysisId) {
+        // check folder browsing is not allowed
+        given()
+                .pathParam("analysisId", analysisId)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/static-report/reports/", URL, PATH))
+                .then()
+                .statusCode(404);
+
+        // check a file in a different subfolder is not reachable
+        given()
+                .pathParam("analysisId", analysisId)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/static-report/logs/analysis.log", URL, PATH))
+                .then()
+                .statusCode(404);
+
+        // check a different subfolder is not reachable
+        given()
+                .pathParam("analysisId", analysisId)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/static-report/stats/", URL, PATH))
+                .then()
+                .statusCode(404);
+    }
+
+    private void checkHtmlStaticReportExistsWithTitle(String analysisId, String reportPath, String expectedTitle, String... containsValues) {
+        Response response = given()
+                .pathParam("analysisId", analysisId)
+                .when()
+                .get(String.format("%s/%s/analysis/{analysisId}/static-report/%s", URL, PATH, reportPath))
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.HTML)
+                .body("html.head.title", is(expectedTitle))
+                .extract()
+                .response();
+        // Alternative approach to page's title validation
+/*
+        XmlPath htmlPath = new XmlPath(HTML, response.getBody().asString());
+        assertEquals(expectedTitle, htmlPath.getString("html.head.title"));
+*/
+        Arrays.stream(containsValues).forEach(containsValue -> {
+                    assertTrue(response.getBody().asString().contains(containsValue));
+                }
+        );
+
+    }
+
     @Test
     public void testWindupPostAndDeleteAnalysisEndpoints() {
         // start the SSE listener immediately
@@ -291,6 +387,9 @@ public class WindupE2EIT {
                 .statusCode(200)
                 .body("size()", is(92));
 
+        // check the static reports have been created and are available
+        checkStaticReportsExists(analysisId, "foo.ear");
+
         // check the endpoint for deleting the analysis is working with the 'Location' header value received above
         given()
                 .accept(ContentType.JSON)
@@ -316,6 +415,9 @@ public class WindupE2EIT {
         getAnalysisExecutions(analysisId)
                 .body("size()", is(1),
                         additionalKeyMatcherPairsForSampleApplicationExecution(0));
+
+        // check the static reports have been deleted and aren't available anymore
+        checkStaticReportsDoesNotExist(analysisId);
     }
 
     @Test
@@ -365,6 +467,9 @@ public class WindupE2EIT {
                         "[0].state", is(ExecutionState.CANCELLED.toString()),
                         "[0].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED));
 
+        // check the static reports have been deleted and aren't available anymore
+        checkStaticReportsDoesNotExist(analysisId);
+
         // now we can overwrite the previous analysis
         final Headers putHeaders = putTestApplicationAnalysis(analysisId).headers();
         // check the location is exactly the same as the one provided in the previous POST response
@@ -399,6 +504,9 @@ public class WindupE2EIT {
                 "[1].workTotal", is(SAMPLE_APPLICATION_WINDUP_TOTAL_WORK_EXPECTED)));
         checks.addAll(List.of(additionalKeyMatcherPairsForTestApplicationExecution(0)));
         getAnalysisExecutions(analysisId).body("size()", is(2), checks.toArray());
+
+        // check the static reports have been created and are available
+        checkStaticReportsExists(analysisId, "bar.ear");
     }
 
     @Test
@@ -438,6 +546,9 @@ public class WindupE2EIT {
         // check analysis status is completed
         checkAnalysisStatus(analysisId, AnalysisModel.Status.COMPLETED);
 
+        // check the static reports have been created and are available
+        checkStaticReportsExists(analysisId, "foo.ear");
+
         // now we can overwrite the previous analysis
         final Headers putHeaders = putTestApplicationAnalysis(analysisId).headers();
         // check the location is exactly the same as the one provided in the previous POST response
@@ -475,6 +586,9 @@ public class WindupE2EIT {
         final List<Object> checks =  new ArrayList<>(List.of(additionalKeyMatcherPairsForTestApplicationExecution(0)));
         checks.addAll(List.of(additionalKeyMatcherPairsForSampleApplicationExecution(1)));
         getAnalysisExecutions(analysisId).body("size()", is(2), checks.toArray());
+
+        // check the static reports have been created and are available
+        checkStaticReportsExists(analysisId, "bar.ear");
     }
 
     @Test
