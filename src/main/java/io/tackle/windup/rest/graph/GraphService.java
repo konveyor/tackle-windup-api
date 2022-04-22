@@ -190,8 +190,6 @@ public class GraphService {
                 importedVertex.property(PATH_PARAM_ANALYSIS_ID, analysisId);
                 verticesBeforeAndAfter.put(vertex.getElement().id(), importedVertex.next().id());
             }
-            if (LOG.isDebugEnabled())
-                LOG.debugf("Central Graph count after %d", centralGraphTraversalSource.V().count().next());
 //            centralGraphTraversalSource.V().toList().forEach(v -> LOG.infof("%s with property %s", v, v.property(PATH_PARAM_ANALYSIS_ID)));
             Iterator<WindupEdgeFrame> edgeIterator = framedGraph.traverse(GraphTraversalSource::E).frame(WindupEdgeFrame.class);
             while (edgeIterator.hasNext()) {
@@ -268,19 +266,20 @@ public class GraphService {
 
     public void deleteAnalysisGraphFromCentralGraph(String analysisId) {
         GraphTraversalSource centralGraphTraversalSource = getCentralGraphTraversalSource();
+        LOG.debugf("Before deleting vertices with Analysis ID %s, central graph has %d vertices",
+                analysisId,
+                centralGraphTraversalSource.V().has(PATH_PARAM_ANALYSIS_ID).count().next());
         deleteSubGraph(centralGraphTraversalSource, analysisId);
+        LOG.debugf("Going to commit the deletion of vertices with Analysis ID %s to central graph", analysisId);
         centralGraphTraversalSource.tx().commit();
+        LOG.debugf("After deletion of vertices with Analysis ID %s, central graph has %d vertices",
+                analysisId,
+                centralGraphTraversalSource.V().has(PATH_PARAM_ANALYSIS_ID).count().next());
     }
 
     private void deleteSubGraph(GraphTraversalSource centralGraphTraversalSource, String analysisId) {
         // Delete the previous graph for the PATH_PARAM_ANALYSIS_ID provided
         LOG.infof("Delete the previous vertices with Analysis ID %s", analysisId);
-        if (LOG.isDebugEnabled())
-            LOG.debugf("Before deleting vertices with Analysis ID %s, central graph has %d vertices and %d edges",
-                    analysisId,
-                    centralGraphTraversalSource.V().count().next(),
-                    centralGraphTraversalSource.E().count().next());
-
         // Drop the PATH_PARAM_ANALYSIS_ID property from the WindupConfigurationModel vertex (and its connected vertices)
         // so that we can keep these models connected in the graph with the proper WindupExecutionModel vertex
         getCentralGraphTraversalByType(WindupConfigurationModel.class)
@@ -317,11 +316,6 @@ public class GraphService {
 
         final GraphTraversal<Vertex, Vertex> previousVertexGraph = centralGraphTraversalSource.V();
         previousVertexGraph.has(PATH_PARAM_ANALYSIS_ID, analysisId).drop().iterate();
-        if (LOG.isDebugEnabled())
-            LOG.debugf("After deletion of vertices with Analysis ID %s, central graph has %d vertices and %d edges",
-                    analysisId,
-                    centralGraphTraversalSource.V().count().next(),
-                    centralGraphTraversalSource.E().count().next());
     }
 
     public <MODEL extends WindupVertexFrame> MODEL create(Class<MODEL> model) {
