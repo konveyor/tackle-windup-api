@@ -7,6 +7,7 @@ import io.tackle.windup.rest.graph.model.AnalysisModel;
 import io.tackle.windup.rest.graph.model.AnalysisModel.Status;
 import io.tackle.windup.rest.graph.model.WindupExecutionModel;
 import io.tackle.windup.rest.resources.WindupBroadcasterResource;
+import io.tackle.windup.rest.util.WindupUtil;
 import org.jboss.logging.Logger;
 import org.jboss.windup.web.services.json.WindupExecutionJSONUtil;
 import org.jboss.windup.web.services.model.WindupExecution;
@@ -92,7 +93,9 @@ public class WindupExecutionStatusConsumer implements Runnable {
                         break;
                     case FAILED:
                     case CANCELLED:
+                        LOG.infof("Received 'CANCELLED' for analysis %s", windupExecution.getId());
                         windupExecutionModel.setTimeFinished(windupExecution.getLastModified().getTimeInMillis());
+                        WindupUtil.deletePath(windupExecutionModel.getOutputPath());
                         break;
                     default:
                         break;

@@ -13,6 +13,7 @@ import io.tackle.windup.rest.graph.model.WindupExecutionModel;
 import io.tackle.windup.rest.jms.WindupExecutionProducer;
 import io.tackle.windup.rest.mapper.AnalysisMapper;
 import io.tackle.windup.rest.mapper.WindupExecutionMapper;
+import io.tackle.windup.rest.util.WindupUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
@@ -61,7 +62,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -174,21 +174,28 @@ public class WindupResource {
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Cancel ongoing analysis\",\"totalWork\":1,\"workCompleted\":0}", analysisId));
             windupExecutionProducer.cancelAnalysis(Long.parseLong(analysisId));
             windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"DELETE\",\"currentTask\":\"Delete analysis graph\",\"totalWork\":1,\"workCompleted\":1}", analysisId));
-            final java.nio.file.Path reportsFolder = Paths.get(graphService.findLatestWindupExecutionOutputPathByAnalysisId(analysisId), "reports");
-            if (Files.exists(reportsFolder)) {
-                Files.walk(reportsFolder)
-                        .sorted(Comparator.reverseOrder())
-                        .map(java.nio.file.Path::toFile)
-                        .forEach(file -> {
-                            LOG.debugf("Delete %s\n", file.getAbsolutePath());
-                            file.delete();
-                        });
-            }
-            Files.deleteIfExists(Paths.get(graphService.findLatestWindupExecutionOutputPathByAnalysisId(analysisId), "index.html"));
+            final AnalysisModel analysisModel = graphService.findAnalysisModelByAnalysisId(Long.parseLong(analysisId));
+            final Status nextStatus = analysisModel.getStatus() == Status.COMPLETED ? Status.DELETED : Status.CANCELLED;
+            final String outputPath = graphService.findLatestWindupExecutionOutputPathByAnalysisId(analysisId);
             graphService.deleteAnalysisGraphFromCentralGraph(analysisId);
-            AnalysisModel analysisModel = graphService.findAnalysisModelByAnalysisId(Long.parseLong(analysisId));
-            analysisModel.setStatus(analysisModel.getStatus() == Status.COMPLETED ? Status.DELETED : Status.CANCELLED);
+            analysisModel.setStatus(nextStatus);
             graphService.getCentralGraphTraversalSource().tx().commit();
+            switch (nextStatus) {
+                case DELETED:
+                    // if the nextStatus is deleted then it means it was completed and hence the whole output
+                    // path can be safely deleted as there's no ongoing analysis
+                    WindupUtil.deletePath(outputPath);
+                    break;
+                case CANCELLED:
+                    // if the nextStatus is cancelled then it means it was ongoing and hence only the report files are worth
+                    // trying to delete right now, letting the async cancel message to stop the execution so that the
+                    // remaining files in the output path can be later deleted in WindupExecutionStatusConsumer
+                    WindupUtil.deletePath(Paths.get(outputPath, "reports"));
+                    Files.deleteIfExists(Paths.get(outputPath, "index.html"));
+                    break;
+                default:
+                    break;
+            }
             return Response.noContent().build();
         } catch (Exception e) {
             e.printStackTrace();
