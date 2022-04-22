@@ -25,11 +25,11 @@ public class WindupUtil {
                 paths.sorted(Comparator.reverseOrder())
                         .map(Path::toFile)
                         .forEach(file -> {
-                            LOG.debugf("Delete %s\n", file.getAbsolutePath());
+                            LOG.debugf("Delete %s", file.getAbsolutePath());
                             result.set(result.get() && file.delete());
                         });
             } catch (IOException e) {
-                LOG.errorf(e,"Failed to delete folder %s due to %s", path.toString(), e.getMessage());
+                LOG.errorf(e, "Failed to delete folder %s due to %s", path.toString(), e.getMessage());
             }
         }
         return result.get();
