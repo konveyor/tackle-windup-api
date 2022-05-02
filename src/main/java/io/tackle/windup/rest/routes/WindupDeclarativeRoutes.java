@@ -7,12 +7,22 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.FileSystemAccess;
 import io.vertx.ext.web.handler.StaticHandler;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.logging.Logger;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.core.Response;
 import java.io.FileNotFoundException;
+
+import static javax.ws.rs.core.MediaType.TEXT_HTML;
 
 @ApplicationScoped
 public class WindupDeclarativeRoutes {
@@ -28,11 +38,25 @@ public class WindupDeclarativeRoutes {
     @ConfigProperty(defaultValue= "reports", name = "io.tackle.windup.rest.static-report.reports.folder")
     String reportsFolderName;
 
-    @Route(regex = "\\/windup\\/analysis\\/(?<" + WindupResource.PATH_PARAM_ANALYSIS_ID + ">[^\\/]+)\\/static-report\\/(index.html)?", methods = Route.HttpMethod.GET)
+    // here the approach about creating routes has been a compromise with automatic OpenAPI definitions creation
+    // so the "entry point" route has been divided into 2 routes and only this one is going to be "exposed" in
+    // OpenAPI definitions file and the other two endpoint are going to be hidden.
+    @Parameter(
+            name = WindupResource.PATH_PARAM_ANALYSIS_ID,
+            in = ParameterIn.PATH,
+            required = true,
+            schema = @Schema(type= SchemaType.STRING)
+    )
+    @APIResponse(responseCode="200",
+            description="Static reports index page",
+            content=@Content(mediaType=TEXT_HTML))
+    @APIResponse(responseCode = "404", description = "Not Found")
+    @Route(path = "/windup/analysis/:" + WindupResource.PATH_PARAM_ANALYSIS_ID + "/static-report/index.html", methods = Route.HttpMethod.GET)
+    @Tag(name = "Windup Static Report")
     void indexStaticContent(RoutingContext routingContext) {
         final String analysisId = routingContext.pathParam(WindupResource.PATH_PARAM_ANALYSIS_ID);
         LOG.infof("Retrieving 'index.html' report for analysis %s", analysisId);
-        String indexPath = String.format("%s/%s", graphService.findLatestWindupExecutionOutputPathByAnalysisId(analysisId), indexFileName);
+        final String indexPath = String.format("%s/%s", graphService.findLatestWindupExecutionOutputPathByAnalysisId(analysisId), indexFileName);
         LOG.infof("Retrieving 'index.html' report for analysis %s from path %s", analysisId, indexPath);
         // I had to use this approach instead of StaticHandler because to have StaticHandler to work
         // in providing the 'index.html' page, the above get path should have had a '*' at the end,
@@ -47,6 +71,13 @@ public class WindupDeclarativeRoutes {
                 });
     }
 
+    @Operation(hidden = true)
+    @Route(path = "/windup/analysis/:" + WindupResource.PATH_PARAM_ANALYSIS_ID + "/static-report/", methods = Route.HttpMethod.GET)
+    void baseStaticContent(RoutingContext routingContext) {
+        indexStaticContent(routingContext);
+    }
+
+    @Operation(hidden = true)
     @Route(path = "/windup/analysis/:" + WindupResource.PATH_PARAM_ANALYSIS_ID + "/static-report/reports/*", methods = Route.HttpMethod.GET)
     void reportsStaticContent(RoutingContext routingContext) {
         final String analysisId = routingContext.pathParam(WindupResource.PATH_PARAM_ANALYSIS_ID);
