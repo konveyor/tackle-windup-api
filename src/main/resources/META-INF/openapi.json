@@ -4,10 +4,43 @@
     "title" : "windup-api API",
     "version" : "0.0.1-SNAPSHOT"
   },
+  "tags" : [ {
+    "name" : "Windup Static Report"
+  } ],
   "paths" : {
+    "/windup" : {
+      "get" : {
+        "tags" : [ "Windup Ui Resource" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/html" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemplateInstance"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/windup/analysis" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/html" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemplateInstance"
+                }
+              }
+            }
+          }
+        }
+      },
       "post" : {
-        "tags" : [ "Windup Resource" ],
         "requestBody" : {
           "content" : {
             "multipart/form-data" : {
@@ -37,6 +70,26 @@
                     "type" : "boolean"
                   }
                 }
+              },
+              "encoding" : {
+                "sourceMode" : {
+                  "contentType" : "text/plain"
+                },
+                "application" : {
+                  "contentType" : "application/octet-stream"
+                },
+                "sources" : {
+                  "contentType" : "text/plain"
+                },
+                "applicationFileName" : {
+                  "contentType" : "text/plain"
+                },
+                "packages" : {
+                  "contentType" : "text/plain"
+                },
+                "targets" : {
+                  "contentType" : "text/plain"
+                }
               }
             }
           }
@@ -48,9 +101,173 @@
         }
       }
     },
+    "/windup/analysis/{analysisId}" : {
+      "get" : {
+        "parameters" : [ {
+          "name" : "analysisId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "put" : {
+        "parameters" : [ {
+          "name" : "analysisId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "application" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  },
+                  "applicationFileName" : {
+                    "type" : "string"
+                  },
+                  "sources" : {
+                    "default" : "",
+                    "type" : "string"
+                  },
+                  "targets" : {
+                    "type" : "string"
+                  },
+                  "packages" : {
+                    "default" : "",
+                    "type" : "string"
+                  },
+                  "sourceMode" : {
+                    "default" : "false",
+                    "type" : "boolean"
+                  }
+                }
+              },
+              "encoding" : {
+                "sourceMode" : {
+                  "contentType" : "text/plain"
+                },
+                "application" : {
+                  "contentType" : "application/octet-stream"
+                },
+                "sources" : {
+                  "contentType" : "text/plain"
+                },
+                "applicationFileName" : {
+                  "contentType" : "text/plain"
+                },
+                "packages" : {
+                  "contentType" : "text/plain"
+                },
+                "targets" : {
+                  "contentType" : "text/plain"
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "delete" : {
+        "parameters" : [ {
+          "name" : "analysisId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/windup/analysis/{analysisId}/execution" : {
+      "get" : {
+        "parameters" : [ {
+          "name" : "analysisId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
     "/windup/analysis/{analysisId}/issues" : {
       "get" : {
-        "tags" : [ "Windup Resource" ],
+        "parameters" : [ {
+          "name" : "analysisId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/html" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemplateInstance"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/windup/analysis/{analysisId}/static-report/index.html" : {
+      "get" : {
+        "tags" : [ "Windup Static Report" ],
+        "parameters" : [ {
+          "name" : "analysisId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Static reports index page",
+            "content" : {
+              "text/html" : { }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
+    "/windup/analysis/{analysisId}/status" : {
+      "get" : {
         "parameters" : [ {
           "name" : "analysisId",
           "in" : "path",
@@ -76,9 +293,25 @@
         }
       }
     },
+    "/windup/analyze" : {
+      "get" : {
+        "tags" : [ "Windup Ui Resource" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/html" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemplateInstance"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/windup/issue" : {
       "get" : {
-        "tags" : [ "Windup Resource" ],
         "parameters" : [ {
           "name" : "analysisId",
           "in" : "query",
@@ -88,7 +321,27 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "text/html" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemplateInstance"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "TemplateInstance" : {
+        "type" : "object",
+        "properties" : {
+          "timeout" : {
+            "format" : "int64",
+            "type" : "integer"
           }
         }
       }
