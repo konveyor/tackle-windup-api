@@ -6,27 +6,16 @@ info:
 tags:
 - name: Windup Static Report
 paths:
-  /windup:
-    get:
-      tags:
-      - Windup Ui Resource
-      responses:
-        "200":
-          description: OK
-          content:
-            text/html:
-              schema:
-                $ref: '#/components/schemas/TemplateInstance'
   /windup/analysis:
     get:
+      tags:
+      - Windup Resource
       responses:
         "200":
           description: OK
-          content:
-            text/html:
-              schema:
-                $ref: '#/components/schemas/TemplateInstance'
     post:
+      tags:
+      - Windup Resource
       requestBody:
         content:
           multipart/form-data:
@@ -67,6 +56,8 @@ paths:
           description: OK
   /windup/analysis/{analysisId}:
     get:
+      tags:
+      - Windup Resource
       parameters:
       - name: analysisId
         in: path
@@ -77,6 +68,8 @@ paths:
         "200":
           description: OK
     put:
+      tags:
+      - Windup Resource
       parameters:
       - name: analysisId
         in: path
@@ -122,6 +115,8 @@ paths:
         "200":
           description: OK
     delete:
+      tags:
+      - Windup Resource
       parameters:
       - name: analysisId
         in: path
@@ -133,6 +128,8 @@ paths:
           description: OK
   /windup/analysis/{analysisId}/execution:
     get:
+      tags:
+      - Windup Resource
       parameters:
       - name: analysisId
         in: path
@@ -144,6 +141,8 @@ paths:
           description: OK
   /windup/analysis/{analysisId}/issues:
     get:
+      tags:
+      - Windup Resource
       parameters:
       - name: analysisId
         in: path
@@ -153,10 +152,6 @@ paths:
       responses:
         "200":
           description: OK
-          content:
-            text/html:
-              schema:
-                $ref: '#/components/schemas/TemplateInstance'
   /windup/analysis/{analysisId}/static-report/index.html:
     get:
       tags:
@@ -176,6 +171,8 @@ paths:
           description: Not Found
   /windup/analysis/{analysisId}/status:
     get:
+      tags:
+      - Windup Resource
       parameters:
       - name: analysisId
         in: path
@@ -192,19 +189,10 @@ paths:
       responses:
         "204":
           description: No Content
-  /windup/analyze:
-    get:
-      tags:
-      - Windup Ui Resource
-      responses:
-        "200":
-          description: OK
-          content:
-            text/html:
-              schema:
-                $ref: '#/components/schemas/TemplateInstance'
   /windup/issue:
     get:
+      tags:
+      - Windup Resource
       parameters:
       - name: analysisId
         in: query
@@ -213,15 +201,3 @@ paths:
       responses:
         "200":
           description: OK
-          content:
-            text/html:
-              schema:
-                $ref: '#/components/schemas/TemplateInstance'
-components:
-  schemas:
-    TemplateInstance:
-      type: object
-      properties:
-        timeout:
-          format: int64
-          type: integer

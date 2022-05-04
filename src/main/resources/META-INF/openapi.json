@@ -8,39 +8,17 @@
     "name" : "Windup Static Report"
   } ],
   "paths" : {
-    "/windup" : {
-      "get" : {
-        "tags" : [ "Windup Ui Resource" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "text/html" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TemplateInstance"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/windup/analysis" : {
       "get" : {
+        "tags" : [ "Windup Resource" ],
         "responses" : {
           "200" : {
-            "description" : "OK",
-            "content" : {
-              "text/html" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TemplateInstance"
-                }
-              }
-            }
+            "description" : "OK"
           }
         }
       },
       "post" : {
+        "tags" : [ "Windup Resource" ],
         "requestBody" : {
           "content" : {
             "multipart/form-data" : {
@@ -103,6 +81,7 @@
     },
     "/windup/analysis/{analysisId}" : {
       "get" : {
+        "tags" : [ "Windup Resource" ],
         "parameters" : [ {
           "name" : "analysisId",
           "in" : "path",
@@ -118,6 +97,7 @@
         }
       },
       "put" : {
+        "tags" : [ "Windup Resource" ],
         "parameters" : [ {
           "name" : "analysisId",
           "in" : "path",
@@ -186,6 +166,7 @@
         }
       },
       "delete" : {
+        "tags" : [ "Windup Resource" ],
         "parameters" : [ {
           "name" : "analysisId",
           "in" : "path",
@@ -203,6 +184,7 @@
     },
     "/windup/analysis/{analysisId}/execution" : {
       "get" : {
+        "tags" : [ "Windup Resource" ],
         "parameters" : [ {
           "name" : "analysisId",
           "in" : "path",
@@ -220,6 +202,7 @@
     },
     "/windup/analysis/{analysisId}/issues" : {
       "get" : {
+        "tags" : [ "Windup Resource" ],
         "parameters" : [ {
           "name" : "analysisId",
           "in" : "path",
@@ -230,14 +213,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "OK",
-            "content" : {
-              "text/html" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TemplateInstance"
-                }
-              }
-            }
+            "description" : "OK"
           }
         }
       }
@@ -268,6 +244,7 @@
     },
     "/windup/analysis/{analysisId}/status" : {
       "get" : {
+        "tags" : [ "Windup Resource" ],
         "parameters" : [ {
           "name" : "analysisId",
           "in" : "path",
@@ -293,25 +270,9 @@
         }
       }
     },
-    "/windup/analyze" : {
-      "get" : {
-        "tags" : [ "Windup Ui Resource" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "text/html" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TemplateInstance"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/windup/issue" : {
       "get" : {
+        "tags" : [ "Windup Resource" ],
         "parameters" : [ {
           "name" : "analysisId",
           "in" : "query",
@@ -321,27 +282,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "OK",
-            "content" : {
-              "text/html" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TemplateInstance"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  "components" : {
-    "schemas" : {
-      "TemplateInstance" : {
-        "type" : "object",
-        "properties" : {
-          "timeout" : {
-            "format" : "int64",
-            "type" : "integer"
+            "description" : "OK"
           }
         }
       }
