@@ -188,7 +188,7 @@ public class GraphService {
             final Iterator<WindupVertexFrame> vertexIterator = framedGraph.traverse(g -> g.V().has(WindupFrame.TYPE_PROP)).frame(WindupVertexFrame.class);
             long elementsImported = -1;
             while (vertexIterator.hasNext()) {
-                if (++elementsImported % 1000 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", analysisId, elementsToBeImported, elementsImported));
+                if (++elementsImported % 50 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", analysisId, elementsToBeImported, elementsImported));
                 WindupVertexFrame vertex = vertexIterator.next();
                 LOG.debugf("Adding Vertex %s", vertex);
                 GraphTraversal<Vertex, Vertex> importedVertex = centralGraphTraversalSource.addV();
@@ -208,7 +208,7 @@ public class GraphService {
 //            centralGraphTraversalSource.V().toList().forEach(v -> LOG.infof("%s with property %s", v, v.property(PATH_PARAM_ANALYSIS_ID)));
             Iterator<WindupEdgeFrame> edgeIterator = framedGraph.traverse(GraphTraversalSource::E).frame(WindupEdgeFrame.class);
             while (edgeIterator.hasNext()) {
-                if (++elementsImported % 1000 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", analysisId, elementsToBeImported, elementsImported));
+                if (++elementsImported % 50 == 0) windupBroadcasterResource.broadcastMessage(String.format("{\"id\":%s,\"state\":\"MERGING\",\"currentTask\":\"Merging analysis graph into central graph\",\"totalWork\":%s,\"workCompleted\":%s}", analysisId, elementsToBeImported, elementsImported));
                 WindupEdgeFrame edgeFrame = edgeIterator.next();
                 LOG.debugf("Adding Edge %s", edgeFrame.toPrettyString());
                 Edge edge = edgeFrame.getElement();

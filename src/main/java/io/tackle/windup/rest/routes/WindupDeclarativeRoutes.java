@@ -70,7 +70,7 @@ public class WindupDeclarativeRoutes {
     @Tag(name = "Windup Static Report")
     void indexStaticContent(RoutingContext routingContext) {
         final String analysisId = routingContext.pathParam(WindupResource.PATH_PARAM_ANALYSIS_ID);
-        LOG.infof("Retrieving 'index.html' report for analysis %s", analysisId);
+        LOG.debugf("Retrieving 'index.html' report for analysis %s", analysisId);
         final String indexPath = String.format("%s/%s", graphService.findLatestWindupExecutionOutputPathByAnalysisId(analysisId), indexFileName);
         LOG.infof("Retrieving 'index.html' report for analysis %s from path %s", analysisId, indexPath);
         // I had to use this approach instead of StaticHandler because to have StaticHandler to work
@@ -96,7 +96,7 @@ public class WindupDeclarativeRoutes {
     @Route(path = "/windup/analysis/:" + WindupResource.PATH_PARAM_ANALYSIS_ID + "/static-report/reports/*", methods = Route.HttpMethod.GET)
     void reportsStaticContent(RoutingContext routingContext) {
         final String analysisId = routingContext.pathParam(WindupResource.PATH_PARAM_ANALYSIS_ID);
-        LOG.infof("Retrieving from 'report' folder for analysis %s", analysisId);
+        LOG.debugf("Retrieving from 'report' folder for analysis %s", analysisId);
         StaticHandler
                 .create(FileSystemAccess.ROOT, String.format("%s/%s/", graphService.findLatestWindupExecutionOutputPathByAnalysisId(analysisId), reportsFolderName))
                 .handle(routingContext);
