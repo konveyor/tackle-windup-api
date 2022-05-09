@@ -46,9 +46,6 @@ jobs:
           minikube version: v1.25.2
           kubernetes version: ${{ matrix.kubernetes_version }}
           github token: ${{ secrets.GITHUB_TOKEN }}
-          # Required for v1.24 support TODO - See if Minikube fixes this
-          # from https://github.com/manusa/actions-setup-minikube/blob/v2.5.0/.github/workflows/runner.yml#L28
-          container runtime: containerd
 
       - name: Load Tackle Windup API container image to Minikube
         run: minikube image load localhost/$USER/windup-api:test
