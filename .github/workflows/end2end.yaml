@@ -43,7 +43,7 @@ jobs:
         uses: manusa/actions-setup-minikube@v2.6.0
         with:
           # for updating, check https://github.com/kubernetes/minikube/releases
-          minikube version: v1.25.2
+          minikube version: v1.26.0
           kubernetes version: ${{ matrix.kubernetes_version }}
           github token: ${{ secrets.GITHUB_TOKEN }}
 
