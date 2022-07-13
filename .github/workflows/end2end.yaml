@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         # for updating, check https://github.com/kubernetes/kubernetes/releases
-        kubernetes_version: [v1.20.15, v1.21.12, v1.22.9, v1.23.6, v1.24.0]
+        kubernetes_version: [v1.20.15, v1.21.14, v1.22.11, v1.23.8, v1.24.2]
       fail-fast: false
     env:
       kubernetes_namespace: windup
