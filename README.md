@@ -19,6 +19,7 @@
   * [API with Swagger](#api-with-swagger)
   * [API with sample page](#api-with-sample-page-2)
   * [API with Tackle](#api-with-tackle-2)
+- [Code of Conduct](#code-of-conduct)
 
 # Introduction
 
