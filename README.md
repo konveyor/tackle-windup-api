@@ -19,6 +19,7 @@
   * [API with Swagger](#api-with-swagger)
   * [API with sample page](#api-with-sample-page-2)
   * [API with Tackle](#api-with-tackle-2)
+- [Code of Conduct](#code-of-conduct)
 
 # Introduction
 
@@ -275,3 +276,7 @@ The credentials to login into the Tackle UI are username `tackle` and password `
 Then, once a new application has been created, the `Analyze` command -for triggering an analysis with Tackle Windup API- is available in the right menu in the application row (see next screenshot).  
 
 ![Tackle analyze application](docs/images/tackle-select-analyze.png?raw=true "Tackle analyze application")  
+
+
+## Code of Conduct
+Refer to Konveyor's Code of Conduct [here](https://github.com/konveyor/community/blob/main/CODE_OF_CONDUCT.md).
