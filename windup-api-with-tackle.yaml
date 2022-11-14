@@ -210,7 +210,7 @@ spec:
             claimName: keycloak-postgresql
       containers:
         - name: postgres
-          image: postgres:10.6
+          image: postgres:15.1
           ports:
             - containerPort: 5432
               protocol: TCP
@@ -2237,7 +2237,7 @@ spec:
             claimName: application-inventory-postgresql
       containers:
         - name: postgres
-          image: postgres:10.6
+          image: postgres:15.1
           ports:
             - containerPort: 5432
               protocol: TCP
