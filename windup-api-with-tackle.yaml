@@ -308,7 +308,7 @@ spec:
           imagePullPolicy: IfNotPresent
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:12.0.4
+          image: quay.io/keycloak/keycloak:20.0.0
           env:
             - name: KEYCLOAK_USER
               value: "admin"
