@@ -41,7 +41,7 @@
     <quarkus.platform.version>2.16.1.Final</quarkus.platform.version>
     <surefire-plugin.version>3.0.0-M8</surefire-plugin.version>
     <clean-plugin.version>3.2.0</clean-plugin.version>
-    <janusgraph.version>0.6.2</janusgraph.version>
+    <janusgraph.version>1.0.0-20230206-082004.8bb50f2</janusgraph.version>
     <windup.version>6.1.2.Final</windup.version>
     <tinkerpop.version>3.5.1</tinkerpop.version>
     <windup.web.scm.connection>scm:git:https://github.com/windup/windup-api.git</windup.web.scm.connection>
